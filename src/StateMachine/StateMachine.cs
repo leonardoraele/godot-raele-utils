@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Godot;
 
@@ -24,14 +23,14 @@ public partial class StateMachine : Node
 	public Node? ActiveState { get; private set; }
 	public Node? PreviousState { get; private set; }
 	public ulong LastStateTransitionTimestamp { get; private set; } = 0;
-	public StateTransitionData? OngoingTransition { get; private set; }
+	public StateTransition? OngoingTransition { get; private set; }
 
 	// -----------------------------------------------------------------------------------------------------------------
 	// SIGNALS
 	// -----------------------------------------------------------------------------------------------------------------
 
-	[Signal] public delegate void BeforeStateEnterEventHandler(StateTransitionData transition);
-	[Signal] public delegate void BeforeStateExitEventHandler(StateTransitionData transition);
+	[Signal] public delegate void BeforeStateEnterEventHandler(StateTransition transition);
+	[Signal] public delegate void BeforeStateExitEventHandler(StateTransition transition);
 	[Signal] public delegate void StartedEventHandler();
 	[Signal] public delegate void FinishedEventHandler();
 
@@ -42,7 +41,8 @@ public partial class StateMachine : Node
 	// TODO This should take into consideration game pause/process pause
 	public ulong TimeSinceLastStateTransitionMs => Time.GetTicksMsec() - this.LastStateTransitionTimestamp;
 	public float TimeSinceLastStateTransitionSec => this.TimeSinceLastStateTransitionMs / 1000f;
-	private string? InitialStateName => this.InitialState?.Name ?? this.GetChildren().FirstOrDefault()?.Name;
+	private Node? ResolvedInitialState => this.InitialState ?? this.GetChild(0);
+	private string? InitialStateName => this.ResolvedInitialState?.Name;
 
 	// -----------------------------------------------------------------------------------------------------------------
 	// LIFECYCLE HANDLERS
@@ -77,11 +77,7 @@ public partial class StateMachine : Node
 		{
 			await this.Stop();
 		}
-		string? initialStateName = this.InitialStateName ?? this.GetChild(0)?.Name;
-		if (!string.IsNullOrEmpty(initialStateName))
-		{
-			this.QueueTransition(initialStateName);
-		}
+		this.QueueTransition(this.InitialStateName);
 	}
 
 	public async Task Stop()
@@ -105,12 +101,12 @@ public partial class StateMachine : Node
 			NextStateName = newStateName,
 			PreviousStateName = this.ActiveState?.Name,
 			Data = data,
-			StateMachineId = this.GetInstanceId(),
+			StateMachine = this,
 		};
 		this.CallDeferred(MethodName.PerformTransition, this.OngoingTransition);
 	}
 
-	private void PerformTransition(StateTransitionData transition)
+	private void PerformTransition(StateTransition transition)
 	{
 		if (transition.IsCanceled)
 		{
@@ -124,7 +120,7 @@ public partial class StateMachine : Node
 				this.EmitSignal(SignalName.BeforeStateExit, transition);
 				if (transition.IsCanceled)
 				{
-					this.DebugLog("🔀", this.ActiveState.Name, "❌ →", transition.NextStateName ?? "null", "(canceled on exit)");
+					this.DebugLog("🔀", this.ActiveState.Name, "❌ →", transition.NextStateName ?? "null", "(canceled by before_state_exit signal handler)");
 					return;
 				}
 				if (this.ActiveState.HasMethod("_exit_state"))

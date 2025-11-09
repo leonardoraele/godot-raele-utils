@@ -1,6 +1,7 @@
 #if TOOLS
 using Godot;
 using Raele.GodotUtils.General;
+using Raele.GodotUtils.StateMachine;
 
 [Tool]
 public partial class GodotUtilsCSPlugin : EditorPlugin
@@ -19,12 +20,19 @@ public partial class GodotUtilsCSPlugin : EditorPlugin
 			GD.Load<Script>("res://addons/godot-utils-csharp/src/General/MimicTransform3D.cs"),
 			null
 		);
+		this.AddCustomType(
+			nameof(StateMachine),
+			nameof(Node),
+			GD.Load<Script>("res://addons/godot-utils-csharp/src/StateMachine/StateMachine.cs"),
+			null
+		);
 	}
 
 	public override void _ExitTree()
 	{
 		this.RemoveCustomType(nameof(MimicTransform2D));
 		this.RemoveCustomType(nameof(MimicTransform3D));
+		this.RemoveCustomType(nameof(StateMachine));
 	}
 }
 #endif
