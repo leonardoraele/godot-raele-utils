@@ -39,13 +39,12 @@ public partial class StateMachine : Node
 	// -----------------------------------------------------------------------------------------------------------------
 
 	// TODO This should take into consideration game pause/process pause
-	public ulong TimeSinceLastStateTransitionMs => Time.GetTicksMsec() - this.LastStateTransitionTimestamp;
-	public float TimeSinceLastStateTransitionSec => this.TimeSinceLastStateTransitionMs / 1000f;
+	public TimeSpan ActiveStateDuration => TimeSpan.FromMilliseconds(Time.GetTicksMsec() - this.LastStateTransitionTimestamp);
 	private Node? ResolvedInitialState => this.InitialState ?? this.GetChild(0);
 	private string? InitialStateName => this.ResolvedInitialState?.Name;
 
 	// -----------------------------------------------------------------------------------------------------------------
-	// LIFECYCLE HANDLERS
+	// GODOT EVENTS
 	// -----------------------------------------------------------------------------------------------------------------
 
 	public override void _Ready()
@@ -55,6 +54,18 @@ public partial class StateMachine : Node
 		{
 			this.Start();
 		}
+	}
+
+	public override void _Process(double delta)
+	{
+		base._Process(delta);
+		this.ActiveState?.Call("_process_active", delta);
+	}
+
+	public override void _PhysicsProcess(double delta)
+	{
+		base._PhysicsProcess(delta);
+		this.ActiveState?.Call("_physics_process_active", delta);
 	}
 
 	// -----------------------------------------------------------------------------------------------------------------
@@ -82,7 +93,7 @@ public partial class StateMachine : Node
 
 	public async Task Stop()
 	{
-		this.QueueTransition(null);
+		this.QueueTransition((string?) null);
 		TaskCompletionSource source = new();
 		this.Finished += source.SetResult;
 		await source.Task;
@@ -105,6 +116,9 @@ public partial class StateMachine : Node
 		};
 		this.CallDeferred(MethodName.PerformTransition, this.OngoingTransition);
 	}
+
+	public void QueueTransition(Node? newState, Variant? data = null)
+		=> this.QueueTransition(newState?.Name, data);
 
 	private void PerformTransition(StateTransition transition)
 	{

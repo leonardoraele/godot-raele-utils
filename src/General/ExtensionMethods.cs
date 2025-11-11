@@ -29,9 +29,7 @@ public static class ExtensionMethods
 	}
 
 	public static T? GetAncestorOrDefault<T>(this Node node) where T : Node
-	{
-		return node.GetAncestors().FirstOrDefault(n => n is T) as T;
-	}
+		=> node.GetAncestors().FirstOrDefault(n => n is T) as T;
 
 	/// <summary>
 	/// Tries to get the first ancestor of the specified type T from the given node.
@@ -51,8 +49,27 @@ public static class ExtensionMethods
 		T? ancestor = node.GetAncestorOrDefault<T>();
 		if (ancestor == null)
 		{
-			throw new NoNullAllowedException($"No ancestor of type {typeof(T).Name} found for node {node.Name}.");
+			throw new NoNullAllowedException($"Failed to find expected ancestor. Node \"{node.Name}\" ({node.GetType().Name}) must be a descendant of a {typeof(T).Name} node.");
 		}
 		return ancestor;
+	}
+
+	public static T? GetChildOrDefault<T>(this Node node) where T : Node
+		=> node.GetChildren().FirstOrDefault(c => c is T) as T;
+
+	public static bool TryGetChild<T>(this Node node, [NotNullWhen(true)] out T? child) where T : Node
+	{
+		child = node.GetChildOrDefault<T>();
+		return child != null;
+	}
+
+	public static T RequireChild<T>(this Node node) where T : Node
+	{
+		T? child = node.GetChildOrDefault<T>();
+		if (child == null)
+		{
+			throw new NoNullAllowedException($"Failed to find expected child. Node \"{node.Name}\" ({node.GetType().Name}) must have a child of type {typeof(T).Name}.");
+		}
+		return child;
 	}
 }
