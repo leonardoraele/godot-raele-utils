@@ -21,7 +21,7 @@ public partial class GodotUtilsCSPlugin : EditorPlugin
 			null
 		);
 		this.AddCustomType(
-			nameof(StateMachine),
+			nameof(StateMachineNode),
 			nameof(Node),
 			GD.Load<Script>("res://addons/godot-utils-csharp/src/StateMachine/StateMachine.cs"),
 			null
@@ -32,7 +32,7 @@ public partial class GodotUtilsCSPlugin : EditorPlugin
 	{
 		this.RemoveCustomType(nameof(MimicTransform2D));
 		this.RemoveCustomType(nameof(MimicTransform3D));
-		this.RemoveCustomType(nameof(StateMachine));
+		this.RemoveCustomType(nameof(StateMachineNode));
 	}
 }
 #endif

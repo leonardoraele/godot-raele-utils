@@ -15,7 +15,7 @@ public partial class MimicTransform2D : Node2D
 	// -----------------------------------------------------------------------------------------------------------------
 
 	[Export] public Node2D? Target;
-	[Export(PropertyHint.Flags, "LocalPosition:1,GlobalPosition:2,Rotation:4,Scale:8,Skew:16")] public uint Fields;
+	[Export(PropertyHint.Flags, "LocalPosition:1,GlobalPosition:2,Rotation:4,Scale:8,Skew:16")] public uint Fields = 30;
 
 	// -----------------------------------------------------------------------------------------------------------------
 	// LIFECYCLE HANDLERS

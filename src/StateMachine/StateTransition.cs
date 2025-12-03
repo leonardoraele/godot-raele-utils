@@ -17,7 +17,7 @@ public partial class StateTransition : GodotObject
 	public string? PreviousStateName { get; init; }
 	public string? NextStateName { get; init; }
 	public Variant? Data { get; init; }
-	public required StateMachine StateMachine { get; init; }
+	public required StateMachineNode StateMachine { get; init; }
 	public bool IsCanceled { get; private set; } = false;
 
 	// -----------------------------------------------------------------------------------------------------------------

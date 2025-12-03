@@ -5,7 +5,7 @@
     <RootNamespace>Raele.GodotUtils</RootNamespace>
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <CSharpierIgnore>true</CSharpierIgnore>
   </PropertyGroup>
 </Project>

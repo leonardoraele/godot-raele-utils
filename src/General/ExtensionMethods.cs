@@ -49,7 +49,7 @@ public static class ExtensionMethods
 		T? ancestor = node.GetAncestorOrDefault<T>();
 		if (ancestor == null)
 		{
-			throw new NoNullAllowedException($"Failed to find expected ancestor. Node \"{node.Name}\" ({node.GetType().Name}) must be a descendant of a {typeof(T).Name} node.");
+			throw new NoNullAllowedException($"Failed to find expected ancestor. Node \"{node.Name}\" ({node.GetType().Name}) must be a descendant of a {typeof(T).Name} node. Node Path: {node.GetPath()}");
 		}
 		return ancestor;
 	}

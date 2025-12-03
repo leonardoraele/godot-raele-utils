@@ -9,13 +9,13 @@ public abstract partial class BaseState : Node
 	// EXPORTS
 	// -----------------------------------------------------------------------------------------------------------------
 
-	[Export] public bool OnlyProcessWhileActive = true;
+	[Export] public ProcessModeEnum ProcessModeWhileInactive = Node.ProcessModeEnum.Disabled;
 
 	// -----------------------------------------------------------------------------------------------------------------
 	// PROPERTIES
 	// -----------------------------------------------------------------------------------------------------------------
 
-	public StateMachine StateMachine => this.RequireAncestor<StateMachine>();
+	public StateMachineNode StateMachine => this.RequireAncestor<StateMachineNode>();
 	public bool IsActive => this.StateMachine.ActiveState == this;
 	public bool IsPreviousActiveState => this.StateMachine.PreviousState == this;
 	public TimeSpan ActiveDuration => this.IsActive ? this.StateMachine.ActiveStateDuration : TimeSpan.Zero;
@@ -33,11 +33,7 @@ public abstract partial class BaseState : Node
 
 	public void _enter_state()
 	{
-		if (this.OnlyProcessWhileActive)
-		{
-			this.SetProcess(true);
-			this.SetPhysicsProcess(true);
-		}
+		this.ProcessMode = ProcessModeEnum.Inherit;
 		try
 		{
 			this._EnterState();
@@ -50,11 +46,7 @@ public abstract partial class BaseState : Node
 
 	public void _exit_state()
 	{
-		if (this.OnlyProcessWhileActive)
-		{
-			this.SetProcess(false);
-			this.SetPhysicsProcess(false);
-		}
+		this.ProcessMode = this.ProcessModeWhileInactive;
 		try
 		{
 			this._ExitState();
