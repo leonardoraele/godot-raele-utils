@@ -1,4 +1,3 @@
-using System;
 using Godot;
 
 namespace Raele.GodotUtils.General;
@@ -15,7 +14,8 @@ public partial class MimicTransform2D : Node2D
 	// -----------------------------------------------------------------------------------------------------------------
 
 	[Export] public Node2D? Target;
-	[Export(PropertyHint.Flags, "LocalPosition:1,GlobalPosition:2,Rotation:4,Scale:8,Skew:16")] public uint Fields = 30;
+	[Export(PropertyHint.Flags, "Position:1,Rotation:2,Scale:4,Skew:8")] public uint Fields = 30;
+	[Export] public bool UseGlobals;
 
 	// -----------------------------------------------------------------------------------------------------------------
 	// LIFECYCLE HANDLERS
@@ -27,30 +27,43 @@ public partial class MimicTransform2D : Node2D
 		{
 			return;
 		}
-		if ((this.Fields & 3) == 1)
+		if (this.UseGlobals)
 		{
-			this.Position = this.Target.Position;
+			if ((this.Fields & 1) != 0)
+			{
+				this.GlobalPosition = this.Target.GlobalPosition;
+			}
+			if ((this.Fields & 2) != 0)
+			{
+				this.GlobalRotation = this.Target.GlobalRotation;
+			}
+			if ((this.Fields & 4) != 0)
+			{
+				this.GlobalScale = this.Target.GlobalScale;
+			}
+			if ((this.Fields & 8) != 0)
+			{
+				this.GlobalSkew = this.Target.GlobalSkew;
+			}
 		}
-		else if ((this.Fields & 3) == 2)
+		else
 		{
-			this.GlobalPosition = this.Target.GlobalPosition;
-		}
-		else if ((this.Fields & 3) == 3)
-		{
-			GD.PrintErr($"{nameof(MimicTransform2D)}: Cannot mimic both LocalPosition and GlobalPosition at the same time. Please turn on either one or the other, but not both.");
-			this.Fields &= ~(uint) 3;
-		}
-		if ((this.Fields & 4) != 0)
-		{
-			this.Rotation = this.Target.Rotation;
-		}
-		if ((this.Fields & 8) != 0)
-		{
-			this.Scale = this.Target.Scale;
-		}
-		if ((this.Fields & 16) != 0)
-		{
-			this.Skew = this.Target.Skew;
+			if ((this.Fields & 1) != 0)
+			{
+				this.Position = this.Target.Position;
+			}
+			if ((this.Fields & 2) != 0)
+			{
+				this.Rotation = this.Target.Rotation;
+			}
+			if ((this.Fields & 4) != 0)
+			{
+				this.Scale = this.Target.Scale;
+			}
+			if ((this.Fields & 8) != 0)
+			{
+				this.Skew = this.Target.Skew;
+			}
 		}
 	}
 }

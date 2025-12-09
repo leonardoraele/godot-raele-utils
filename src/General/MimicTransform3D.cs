@@ -10,7 +10,8 @@ public partial class MimicTransform3D : Node3D
 	// -----------------------------------------------------------------------------------------------------------------
 
 	[Export] public Node3D? Target;
-	[Export(PropertyHint.Flags, "LocalPosition:1,GlobalPosition:2,Rotation:4,Scale:8")] public uint Fields;
+	[Export(PropertyHint.Flags, "Position:1,Rotation:2,Scale:4")] public uint Fields;
+	[Export] public bool UseGlobals;
 
 	// -----------------------------------------------------------------------------------------------------------------
 	// LIFECYCLE HANDLERS
@@ -22,27 +23,35 @@ public partial class MimicTransform3D : Node3D
 		{
 			return;
 		}
-
-		if ((this.Fields & 3) == 1)
+		if (this.UseGlobals)
 		{
-			this.Position = this.Target.Position;
+			if ((this.Fields & 1) != 0)
+			{
+				this.GlobalPosition = this.Target.GlobalPosition;
+			}
+			if ((this.Fields & 2) != 0)
+			{
+				this.GlobalRotation = this.Target.GlobalRotation;
+			}
+			if ((this.Fields & 4) != 0)
+			{
+				// TODO Godot has no GlobalScale property for Node3D
+			}
 		}
-		else if ((this.Fields & 3) == 2)
+		else
 		{
-			this.GlobalPosition = this.Target.GlobalPosition;
-		}
-		else if ((this.Fields & 3) == 3)
-		{
-			GD.PrintErr($"{nameof(MimicTransform3D)}: Cannot mimic both LocalPosition and GlobalPosition at the same time. Please turn on either one or the other, but not both.");
-			this.Fields &= ~(uint) 3;
-		}
-		if ((this.Fields & 4) != 0)
-		{
-			this.Rotation = this.Target.Rotation;
-		}
-		if ((this.Fields & 8) != 0)
-		{
-			this.Scale = this.Target.Scale;
+			if ((this.Fields & 1) != 0)
+			{
+				this.Position = this.Target.Position;
+			}
+			if ((this.Fields & 2) != 0)
+			{
+				this.Rotation = this.Target.Rotation;
+			}
+			if ((this.Fields & 4) != 0)
+			{
+				this.Scale = this.Target.Scale;
+			}
 		}
 	}
 }
