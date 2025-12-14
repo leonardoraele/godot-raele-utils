@@ -11,13 +11,13 @@ public partial class GodotUtilsCSPlugin : EditorPlugin
 		this.AddCustomType(
 			nameof(MimicTransform2D),
 			nameof(Node2D),
-			GD.Load<Script>("res://addons/godot-utils-csharp/src/General/MimicTransform2D.cs"),
+			GD.Load<Script>("res://addons/godot-utils-csharp/src/nodes/MimicTransform2D.cs"),
 			null
 		);
 		this.AddCustomType(
 			nameof(MimicTransform3D),
 			nameof(Node3D),
-			GD.Load<Script>("res://addons/godot-utils-csharp/src/General/MimicTransform3D.cs"),
+			GD.Load<Script>("res://addons/godot-utils-csharp/src/nodes/MimicTransform3D.cs"),
 			null
 		);
 		this.AddCustomType(
