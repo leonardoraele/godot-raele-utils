@@ -135,7 +135,14 @@ public partial class StateMachine<T> where T : StateMachine<T>.IState
 		{
 			return;
 		}
-		this.BeforeStateExit?.Invoke(transition);
+		try
+		{
+			this.BeforeStateExit?.Invoke(transition);
+		}
+		catch (Exception e)
+		{
+			GD.PushError(e);
+		}
 		if (transition.IsCanceled)
 		{
 			return;
