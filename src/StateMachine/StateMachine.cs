@@ -28,8 +28,8 @@ public partial class StateMachine<T> where T : StateMachine<T>.IState
 	public partial class Transition : GodotObject
 	{
 		public required StateMachine<T> StateMachine { get; init; }
-		public required T? StateIn { get; init; }
-		public required T? StateOut { get; init; }
+		public required T? EnterState { get; init; }
+		public required T? ExitState { get; init; }
 		public Variant Data { get; init; } = new Variant();
 		public bool IsCanceled { get; private set; } = false;
 		public event Action? Canceled;
@@ -63,10 +63,12 @@ public partial class StateMachine<T> where T : StateMachine<T>.IState
 	// EVENTS
 	// -----------------------------------------------------------------------------------------------------------------
 
+	public event Action? Started;
 	public event Action<Transition>? BeforeStateExit;
 	public event Action<Transition>? BeforeStateEnter;
 	public event Action<Transition>? TransitionCanceled;
 	public event Action<Transition>? TransitionCompleted;
+	public event Action? Stopped;
 
 	// -----------------------------------------------------------------------------------------------------------------
 	// METHODS
@@ -83,12 +85,14 @@ public partial class StateMachine<T> where T : StateMachine<T>.IState
 		this.QueuedTransition = new()
 		{
 			StateMachine = this,
-			StateOut = this.ActiveState,
-			StateIn = state,
+			ExitState = this.ActiveState,
+			EnterState = state,
 			Data = data
 		};
 		this.PerformTransitionCallable.CallDeferred();
 	}
+
+	public void Stop() => this.QueueTransition(default);
 
 	private void PerformTransition()
 	{
@@ -114,6 +118,9 @@ public partial class StateMachine<T> where T : StateMachine<T>.IState
 			return;
 		}
 
+		this.PreviousActiveState = this.ActiveState;
+		this.ActiveState = transition.EnterState;
+
 		this.TransitionIn(transition);
 
 		this.LastStateTransitionTimestamp = Time.GetTicksMsec();
@@ -121,17 +128,41 @@ public partial class StateMachine<T> where T : StateMachine<T>.IState
 
 		if (transition.IsCanceled)
 		{
-			this.TransitionCanceled?.Invoke(transition);
+			this.ActiveState = default;
+			try
+			{
+				this.TransitionCanceled?.Invoke(transition);
+			}
+			catch (Exception e)
+			{
+				GD.PushError(e);
+			}
 		}
 		else
 		{
-			this.TransitionCompleted?.Invoke(transition);
+			try
+			{
+				this.TransitionCompleted?.Invoke(transition);
+			}
+			catch (Exception e)
+			{
+				GD.PushError(e);
+			}
+			if (transition.ExitState == null && transition.EnterState != null)
+			{
+				this.Started?.Invoke();
+			}
+		}
+
+		if (this.ActiveState == null && this.QueuedTransition == null)
+		{
+			this.Stopped?.Invoke();
 		}
 	}
 
 	private void TransitionOut(Transition transition)
 	{
-		if (transition.StateOut == null)
+		if (transition.ExitState == null)
 		{
 			return;
 		}
@@ -149,39 +180,39 @@ public partial class StateMachine<T> where T : StateMachine<T>.IState
 		}
 		try
 		{
-			transition.StateOut?.ExitState(transition);
+			transition.ExitState?.ExitState(transition);
 		}
 		catch (Exception e)
 		{
 			GD.PushError(e);
 		}
-		if (transition.IsCanceled)
-		{
-			return;
-		}
-		this.PreviousActiveState = this.ActiveState;
-		this.ActiveState = default;
 	}
 
 	private void TransitionIn(Transition transition)
 	{
-		this.BeforeStateEnter?.Invoke(transition);
+		if (transition.EnterState == null)
+		{
+			return;
+		}
+		try
+		{
+			this.BeforeStateEnter?.Invoke(transition);
+		}
+		catch (Exception e)
+		{
+			GD.PushError(e);
+		}
 		if (transition.IsCanceled)
 		{
 			return;
 		}
 		try
 		{
-			transition.StateIn?.EnterState(transition);
+			transition.EnterState?.EnterState(transition);
 		}
 		catch (Exception e)
 		{
 			GD.PushError(e);
 		}
-		if (transition.IsCanceled)
-		{
-			return;
-		}
-		this.ActiveState = transition.StateIn;
 	}
 }
