@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Godot;
 
-namespace Raele.GodotUtils;
+namespace Raele.GodotUtils.Extensions;
 
 public static class ExtensionMethods
 {
@@ -18,12 +18,8 @@ public static class ExtensionMethods
 		/// <param name="includeSelf">Whether to include the given node itself in the returned collection.</param>
 		/// <returns>An enumerable collection of ancestor nodes, starting with the immediate parent and ending with the root
 		/// of the scene tree.</returns>
-		public IEnumerable<Node> GetAncestors(bool includeSelf = false)
+		public IEnumerable<Node> GetAncestors()
 		{
-			if (includeSelf)
-			{
-				yield return self;
-			}
 			for (Node? current = self.GetParent(); current != null; current = current.GetParent())
 			{
 				yield return current;
@@ -50,19 +46,5 @@ public static class ExtensionMethods
 			=> self.TryGetAncestor(out T? ancestor)
 				? ancestor
 				: throw new NoNullAllowedException($"Failed to find expected ancestor. Node \"{self.Name}\" ({self.GetType().Name}) must be a descendant of a {typeof(T).Name} node. Node Path: {self.GetPath()}");
-
-		public T? GetChildOrDefault<T>() where T : Node
-			=> self.GetChildren().OfType<T>().FirstOrDefault();
-
-		public bool TryGetChild<T>([NotNullWhen(true)] out T? child) where T : Node
-		{
-			child = self.GetChildOrDefault<T>();
-			return child != null;
-		}
-
-		public T RequireChild<T>() where T : Node
-			=> self.TryGetChild(out T? child)
-				? child
-				: throw new NoNullAllowedException($"Failed to find expected child. Node \"{self.Name}\" ({self.GetType().Name}) must have a child of type {typeof(T).Name}.");
 	}
 }

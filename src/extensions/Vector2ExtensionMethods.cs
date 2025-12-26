@@ -1,6 +1,6 @@
 using Godot;
 
-namespace Raele.GodotUtils;
+namespace Raele.GodotUtils.Extensions;
 
 public static class Vector2ExtensionMethods
 {

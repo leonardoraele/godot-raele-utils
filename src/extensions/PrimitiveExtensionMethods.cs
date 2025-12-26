@@ -1,5 +1,7 @@
 using System;
 
+namespace Raele.GodotUtils.Extensions;
+
 public static class PrimitiveExtensionMethods
 {
 	extension<T>(T self) where T : struct, IComparable<T>

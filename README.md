@@ -1,11 +1,14 @@
-# Godot Utils C#
+# My Godot C# Utility Tools
 
-A collection of utility classes and extensions for Godot Engine using C#.
+A collection of utility classes and extensions for Godot C#.
+
+## Features
+
+TODO
 
 ## Installation
 
-1. Copy the `godot-utils-csharp` folder into your project's `addons` directory
-2. Rebuild your project to ensure C# scripts are compiled
+Install with nuget.
 
 ## License
 

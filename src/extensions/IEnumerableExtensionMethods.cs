@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Raele.GodotUtils;
+namespace Raele.GodotUtils.Extensions;
 
 public static class IEnumerableExtensionMethods
 {
@@ -38,8 +38,6 @@ public static class IEnumerableExtensionMethods
 			}
 			return self;
 		}
-
-		public IEnumerable<T> Unique() => new HashSet<T>(self);
 
 		public int FindIndex(Func<T, bool> predicate)
 		{

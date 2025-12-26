@@ -1,0 +1,22 @@
+<Project Sdk="Godot.NET.Sdk/4.5.0">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>Raele.GodotUtils</RootNamespace>
+    <Nullable>enable</Nullable>
+    <LangVersion>14</LangVersion>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <CSharpierIgnore>true</CSharpierIgnore>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PackageId>RaeleGodotUtilsCSharp</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Leonardo Raele</Authors>
+    <Company>Raele</Company>
+    <Description>A collection of C# utilities for Godot Engine.</Description>
+    <PackageTags>Godot;CSharp;Util;Utilities</PackageTags>
+    <RepositoryUrl>https://github.com/leonardoraele/godot-utils-csharp</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+</Project>
