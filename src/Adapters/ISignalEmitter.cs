@@ -94,8 +94,8 @@ public interface ISignalEmitter
 			.Select(ConnectedSignal.FromDictionary)
 			.ToArray();
 
-	public MethodInfo[] GetSignalListParsed()
+	public GodotMethodInfo[] GetSignalListParsed()
 		=> this.GetSignalList()
-			.Select(MethodInfo.FromDictionary)
+			.Select(GodotMethodInfo.FromDictionary)
 			.ToArray();
 }
