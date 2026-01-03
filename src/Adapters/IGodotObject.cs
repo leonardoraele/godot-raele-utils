@@ -4,7 +4,6 @@ namespace Raele.GodotUtils.Adapters;
 
 public partial interface IGodotObject
 {
-	public static IGodotObject From(GodotObject obj) => (IGodotObject) obj;
 	public GodotObject AsGodotObject() => (GodotObject) this;
 
 	public SignalAwaiter ToSignal(GodotObject source, StringName signal);

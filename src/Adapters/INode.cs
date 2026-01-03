@@ -4,7 +4,6 @@ namespace Raele.GodotUtils.Adapters;
 
 public partial interface INode
 {
-	public static INode From(Node node) => (INode) node;
 	public Node AsNode() => (Node) this;
 
 	public void SetName(StringName name);
