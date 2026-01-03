@@ -1,13 +1,21 @@
+using System;
 using System.Linq;
 using Godot;
 
 namespace Raele.GodotUtils.Adapters;
 
-public interface ISignalEmitter
+public partial interface IGodotObject
 {
 	//------------------------------------------------------------------------------------------------------------------
 	// ABSTRACTS
 	//------------------------------------------------------------------------------------------------------------------
+
+	public void AddUserSignal(string signal);
+	public void AddUserSignal(string signal, Godot.Collections.Array arguments);
+	public bool HasUserSignal(StringName signal);
+	public void RemoveUserSignal(StringName signal);
+	public Error EmitSignal(StringName signal, params Variant[] args);
+	public Error EmitSignal(StringName signal, ReadOnlySpan<Variant> args);
 
 	/// <summary>
 	/// <para>Returns <see langword="true"/> if the given <paramref name="signal"/> name exists in the object.</para>
@@ -72,10 +80,6 @@ public interface ISignalEmitter
 	/// <para>Returns <see langword="true"/> if the object is blocking its signals from being emitted. See <see cref="Godot.GodotObject.SetBlockSignals(bool)"/>.</para>
 	/// </summary>
 	public bool IsBlockingSignals();
-
-	//------------------------------------------------------------------------------------------------------------------
-	// INTERNAL TYPES
-	//------------------------------------------------------------------------------------------------------------------
 
 	//------------------------------------------------------------------------------------------------------------------
 	// CONCRETES
