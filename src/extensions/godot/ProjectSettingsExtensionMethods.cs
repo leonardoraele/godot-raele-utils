@@ -16,11 +16,11 @@ public static class ProjectSettingsExtensionMethods
 			value = hasSetting ? ProjectSettings.GetSetting(setting).As<T>() : default;
 			return hasSetting;
 		}
-		public static void DefineSetting(GodotPropertyInfo property, Variant defaultValue)
+		public static void DefineSetting(GodotPropertyInfo property)
 		{
 			if (!ProjectSettings.HasSetting(property.Name))
-				ProjectSettings.SetSetting(property.Name, defaultValue);
-			ProjectSettings.SetInitialValue(property.Name, defaultValue);
+				ProjectSettings.SetSetting(property.Name, property.DefaultValue);
+			ProjectSettings.SetInitialValue(property.Name, property.DefaultValue);
 			ProjectSettings.AddPropertyInfo(property.ToDictionary());
 		}
 	}

@@ -12,6 +12,7 @@ public record GodotPropertyInfo
 	public PropertyHint Hint { get; init; } = PropertyHint.None;
 	public string HintString { get; init; } = "";
 	public long UsageBitmask { get; init; } = 0;
+	public Variant DefaultValue { get; init; } = new Variant();
 	public HashSet<PropertyUsageFlags> Usage
 	{
 		get => field ??= Enumerable.Range(0, 64)
@@ -35,6 +36,7 @@ public record GodotPropertyInfo
 			["hint"] = (long) this.Hint,
 			["hint_string"] = this.HintString,
 			["usage"] = this.UsageBitmask,
+			["default_value"] = this.DefaultValue,
 		};
 
 	public static GodotPropertyInfo FromDictionary(Godot.Collections.Dictionary dict)
@@ -52,6 +54,7 @@ public record GodotPropertyInfo
 				.Where(mask => (usageFlags & mask) != 0)
 				.Select(mask => (PropertyUsageFlags) mask)
 				.ToHashSet(),
+			DefaultValue = dict["default_value"],
 		};
 	}
 }
