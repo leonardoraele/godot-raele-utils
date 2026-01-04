@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Raele.GodotUtils.Extensions;
 
@@ -37,6 +38,18 @@ public static class IEnumerableExtensionMethods
 				action(item, i++);
 			}
 			return self;
+		}
+
+		public T ElementAtOrDefault(int index, T defaultValue)
+		{
+			try
+			{
+				return self.ElementAt(index);
+			}
+			catch (ArgumentOutOfRangeException)
+			{
+				return defaultValue;
+			}
 		}
 
 		public int FindIndex(Func<T, bool> predicate)

@@ -8,7 +8,7 @@ namespace Raele.GodotUtils;
 /// Interface for processors that operate over discrete time intervals. For nodes that perform certain processsing over
 /// a defined period of time, allowing for start and finish events, as well as tracking active time.
 /// </summary>
-public interface IDiscreteIntervalProcessor : IGodotObject
+public interface IActivity : IGodotObject
 {
 	public bool IsActive { get; }
 	public TimeSpan ActiveTimeSpan { get; }

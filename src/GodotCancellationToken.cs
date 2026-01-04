@@ -1,19 +1,22 @@
-using System.Threading.Tasks;
+using System;
+using System.Threading;
 using Godot;
 
 namespace Raele.GodotUtils;
 
-public partial class CancellationToken : GodotObject
+public partial class GodotCancellationToken : GodotObject
 {
-	[Signal] public delegate void AbortedEventHandler(Variant reason);
-	public Task<Variant> OnceAborted()
+	[Signal] public delegate void CancellationRequestedEventHandler();
+	public required CancellationToken Token
 	{
-		TaskCompletionSource<Variant> cts = new();
-		this.Connect(
-			SignalName.Aborted,
-			Callable.From((Variant reason) => cts.SetResult(reason)),
-			(uint) ConnectFlags.OneShot
-		);
-		return cts.Task;
+		get;
+		init
+		{
+			field = value;
+			value.Register(() => this.EmitSignal(SignalName.CancellationRequested));
+		}
 	}
+
+	public void Register(Action callback)
+		=> this.Token.Register(callback);
 }
