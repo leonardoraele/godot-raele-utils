@@ -20,19 +20,17 @@ public static class PrimitiveExtensionMethods
 	{
 		public string TrimEnd(string suffix)
 		{
-			if (str.EndsWith(suffix, StringComparison.Ordinal))
-			{
-				return str.Substring(0, str.Length - suffix.Length).TrimEnd(suffix);
-			}
-			return str;
+			string current = str;
+			while (current.EndsWith(suffix, StringComparison.Ordinal))
+				current = current.Substring(0, current.Length - suffix.Length);
+			return current;
 		}
 		public string TrimStart(string prefix)
 		{
-			if (str.StartsWith(prefix, StringComparison.Ordinal))
-			{
-				return str.Substring(prefix.Length).TrimStart(prefix);
-			}
-			return str;
+			string current = str;
+			while (current.StartsWith(prefix, StringComparison.Ordinal))
+				current = current.Substring(prefix.Length);
+			return current;
 		}
 
 		public string BBCBold() => $"[b]{str}[/b]";

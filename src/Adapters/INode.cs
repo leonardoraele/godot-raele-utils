@@ -2,7 +2,7 @@ using Godot;
 
 namespace Raele.GodotUtils.Adapters;
 
-public partial interface INode
+public partial interface INode : IGodotObject
 {
 	public Node AsNode() => (Node) this;
 

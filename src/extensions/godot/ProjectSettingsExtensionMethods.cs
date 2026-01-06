@@ -21,7 +21,7 @@ public static class ProjectSettingsExtensionMethods
 			if (!ProjectSettings.HasSetting(property.Name))
 				ProjectSettings.SetSetting(property.Name, property.DefaultValue);
 			ProjectSettings.SetInitialValue(property.Name, property.DefaultValue);
-			ProjectSettings.AddPropertyInfo(property.ToDictionary());
+			ProjectSettings.AddPropertyInfo(property.ToGodotDictionary());
 		}
 	}
 }
