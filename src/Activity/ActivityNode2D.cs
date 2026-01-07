@@ -14,10 +14,10 @@ public abstract partial class ActivityNode2D : Node2D, IActivity, ActivityImpl.I
 	public ActivityNode2D() : base()
 	{
 		this.Impl = new(this);
-		this.Impl.EventWillStart += this.EmitSignalActivityWillStart;
-		this.Impl.EventStarted += this.EmitSignalActivityStarted;
-		this.Impl.EventWillFinish += this.EmitSignalActivityWillFinish;
-		this.Impl.EventFinished += this.EmitSignalActivityFinished;
+		this.Impl.EventWillStart += this.EmitSignalWillStart;
+		this.Impl.EventStarted += this.EmitSignalStarted;
+		this.Impl.EventWillFinish += this.EmitSignalWillFinish;
+		this.Impl.EventFinished += this.EmitSignalFinished;
 	}
 
 	//==================================================================================================================
@@ -63,29 +63,29 @@ public abstract partial class ActivityNode2D : Node2D, IActivity, ActivityImpl.I
 
 	event Action<string, Variant, GodotCancellationController> IActivity.EventWillStart
 	{
-		add => Connect(nameof(ActivityWillStart), value.ToCallable());
-		remove => Disconnect(nameof(ActivityWillStart), value.ToCallable());
+		add => Connect(nameof(WillStart), value.ToCallable());
+		remove => Disconnect(nameof(WillStart), value.ToCallable());
 	}
 	event Action<string, Variant> IActivity.EventStarted
 	{
-		add => Connect(nameof(ActivityStarted), value.ToCallable());
-		remove => Disconnect(nameof(ActivityStarted), value.ToCallable());
+		add => Connect(nameof(Started), value.ToCallable());
+		remove => Disconnect(nameof(Started), value.ToCallable());
 	}
 	event Action<string, Variant, GodotCancellationController> IActivity.EventWillFinish
 	{
-		add => Connect(nameof(ActivityWillFinish), value.ToCallable());
-		remove => Disconnect(nameof(ActivityWillFinish), value.ToCallable());
+		add => Connect(nameof(WillFinish), value.ToCallable());
+		remove => Disconnect(nameof(WillFinish), value.ToCallable());
 	}
 	event Action<string, Variant> IActivity.EventFinished
 	{
-		add => Connect(nameof(ActivityFinished), value.ToCallable());
-		remove => Disconnect(nameof(ActivityFinished), value.ToCallable());
+		add => Connect(nameof(Finished), value.ToCallable());
+		remove => Disconnect(nameof(Finished), value.ToCallable());
 	}
 
-	[Signal] public delegate void ActivityWillStartEventHandler(string mode, Variant argument, GodotCancellationController controller);
-	[Signal] public delegate void ActivityStartedEventHandler(string mode, Variant argument);
-	[Signal] public delegate void ActivityWillFinishEventHandler(string reason, Variant details, GodotCancellationController controller);
-	[Signal] public delegate void ActivityFinishedEventHandler(string reason, Variant details);
+	[Signal] public delegate void WillStartEventHandler(string mode, Variant argument, GodotCancellationController controller);
+	[Signal] public delegate void StartedEventHandler(string mode, Variant argument);
+	[Signal] public delegate void WillFinishEventHandler(string reason, Variant details, GodotCancellationController controller);
+	[Signal] public delegate void FinishedEventHandler(string reason, Variant details);
 
 	//==================================================================================================================
 	#endregion

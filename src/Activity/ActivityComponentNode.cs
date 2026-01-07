@@ -5,7 +5,7 @@ using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils;
 
-public abstract partial class ActivityComponentNode : Node, IActivityNode, ActivityComponentImpl.IWrapper
+public abstract partial class ActivityComponentNode : Node, IActivityNode, ActivityComponentImpl.IWrapper, IActivityComponent
 {
 	//==================================================================================================================
 	#region STATICS & CONSTRUCTORS
@@ -44,6 +44,7 @@ public abstract partial class ActivityComponentNode : Node, IActivityNode, Activ
 
 	bool IActivity.IsActive => this.Impl.IsActive;
 	TimeSpan IActivity.ActiveTimeSpan => this.Impl.ActiveTimeSpan;
+	IActivity? IActivityComponent.ParentActivity => this.Impl.AsActivityComponent().ParentActivity;
 	public bool Enabled
 	{
 		get => this.Impl.Enabled;
@@ -125,24 +126,24 @@ public abstract partial class ActivityComponentNode : Node, IActivityNode, Activ
 	public virtual void _ParentActivityFinished(string reason, Variant details) {}
 
 	void ActivityImpl.IWrapper._ActivityWillStart(string mode, Variant argument, GodotCancellationController controller)
-		=> this._ComponentActivityWillStart(mode, argument, controller);
+		=> this._SelfActivityWillStart(mode, argument, controller);
 	void ActivityImpl.IWrapper._ActivityStarted(string mode, Variant argument)
-		=> this._ComponentActivityStarted(mode, argument);
+		=> this._SelfActivityStarted(mode, argument);
 	void ActivityImpl.IWrapper._ActivityProcess(double delta)
-		=> this._ComponentActivityProcess(delta);
+		=> this._SelfActivityProcess(delta);
 	void ActivityImpl.IWrapper._ActivityPhysicsProcess(double delta)
-		=> this._ComponentActivityPhysicsProcess(delta);
+		=> this._SelfActivityPhysicsProcess(delta);
 	void ActivityImpl.IWrapper._ActivityWillFinish(string reason, Variant details, GodotCancellationController controller)
-		=> this._ComponentActivityWillFinish(reason, details, controller);
+		=> this._SelfActivityWillFinish(reason, details, controller);
 	void ActivityImpl.IWrapper._ActivityFinished(string reason, Variant details)
-		=> this._ComponentActivityFinished(reason, details);
+		=> this._SelfActivityFinished(reason, details);
 
-	protected virtual void _ComponentActivityWillStart(string mode, Variant argument, GodotCancellationController controller) {}
-	protected virtual void _ComponentActivityStarted(string mode, Variant argument) {}
-	protected virtual void _ComponentActivityProcess(double delta) {}
-	protected virtual void _ComponentActivityPhysicsProcess(double delta) {}
-	protected virtual void _ComponentActivityWillFinish(string reason, Variant details, GodotCancellationController controller) {}
-	protected virtual void _ComponentActivityFinished(string reason, Variant details) {}
+	protected virtual void _SelfActivityWillStart(string mode, Variant argument, GodotCancellationController controller) {}
+	protected virtual void _SelfActivityStarted(string mode, Variant argument) {}
+	protected virtual void _SelfActivityProcess(double delta) {}
+	protected virtual void _SelfActivityPhysicsProcess(double delta) {}
+	protected virtual void _SelfActivityWillFinish(string reason, Variant details, GodotCancellationController controller) {}
+	protected virtual void _SelfActivityFinished(string reason, Variant details) {}
 
 	//==================================================================================================================
 	#endregion
@@ -150,10 +151,8 @@ public abstract partial class ActivityComponentNode : Node, IActivityNode, Activ
 	#region METHODS
 	//==================================================================================================================
 
-	public bool Start(string mode = "", Variant arguments = new Variant())
-		=> this.Impl.AsActivity().Start(mode, arguments);
-	public bool Finish(string reason = "", Variant details = new Variant())
-		=> this.Impl.AsActivity().Finish(reason, details);
+	bool IActivity.Start(string mode, Variant argument) => this.Impl.Start(mode, argument);
+	bool IActivity.Finish(string reason, Variant details) => this.Impl.Finish(reason, details);
 
 	//==================================================================================================================
 	#endregion

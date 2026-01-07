@@ -7,7 +7,7 @@ using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils;
 
-public partial class ActivityComponentImpl : ActivityImpl
+public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 {
 	//==================================================================================================================
 		#region STATICS & CONSTRUCTORS
@@ -56,7 +56,8 @@ public partial class ActivityComponentImpl : ActivityImpl
 		#region COMPUTED PROPERTIES
 	//==================================================================================================================
 
-
+	private IActivity? ParentActivity => WRAPPER.GetParentOrNull<IActivity>();
+	IActivity? IActivityComponent.ParentActivity => this.ParentActivity;
 
 	//==================================================================================================================
 		#endregion
@@ -242,7 +243,11 @@ public partial class ActivityComponentImpl : ActivityImpl
 			this.AsActivity().Finish();
 	}
 
-	//------------------------------------------------------------------------------------------------------------------
+	//==================================================================================================================
+		#endregion
+	//==================================================================================================================
+		#region METHODS
+	//==================================================================================================================
 
 	private void OnActivityWillStart(string mode, Variant argument, GodotCancellationController controller)
 		=> WRAPPER._ParentActivityWillStart(mode, argument, controller);
@@ -259,15 +264,9 @@ public partial class ActivityComponentImpl : ActivityImpl
 		WRAPPER._ParentActivityFinished(reason, details);
 	}
 
-	//==================================================================================================================
-		#endregion
-	//==================================================================================================================
-		#region METHODS
-	//==================================================================================================================
-
-	public IActivity? ParentActivity => WRAPPER.GetParentOrNull<IActivity>();
 	private bool TestStartConditions() => this.StartStrategyImpl.Test();
 	private bool TestFinishConditions() => this.FinishStrategyImpl.Test();
+
 	private TimingStrategy CreateTimingStrategyHandler(TimingStrategyEnum strategy)
 		=> strategy switch
 		{
