@@ -7,7 +7,10 @@ public static class VariantExtensionMethods
 {
 	extension (Variant self)
 	{
-		public static Variant Nil() => new Variant();
+		public static Variant NULL => new Variant();
+
+		public T? AsGodotObject<T>() where T : GodotObject
+			=> self.AsGodotObject() as T;
 
 		public Variant As(Variant.Type type)
 			=> type switch
