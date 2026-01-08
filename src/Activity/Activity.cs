@@ -1,24 +1,14 @@
 using System;
 using Godot;
-using Godot.Collections;
 using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils;
 
-public abstract partial class ActivityNode2D : Node2D, IActivity, ActivityImpl.IWrapper
+public abstract partial class Activity : Node, IActivity
 {
 	//==================================================================================================================
-		#region STATICS & CONSTRUCTORS
+		#region STATICS
 	//==================================================================================================================
-
-	public ActivityNode2D() : base()
-	{
-		this.Impl = new(this);
-		this.Impl.EventWillStart += this.EmitSignalWillStart;
-		this.Impl.EventStarted += this.EmitSignalStarted;
-		this.Impl.EventWillFinish += this.EmitSignalWillFinish;
-		this.Impl.EventFinished += this.EmitSignalFinished;
-	}
 
 	//==================================================================================================================
 		#endregion
@@ -26,7 +16,8 @@ public abstract partial class ActivityNode2D : Node2D, IActivity, ActivityImpl.I
 		#region EXPORTS
 	//==================================================================================================================
 
-
+	[Export] public Node.ProcessModeEnum ProcessModeWhenActive = Node.ProcessModeEnum.Inherit;
+	[Export] public Node.ProcessModeEnum ProcessModeWhenInactive = Node.ProcessModeEnum.Disabled;
 
 	//==================================================================================================================
 		#endregion
@@ -34,26 +25,14 @@ public abstract partial class ActivityNode2D : Node2D, IActivity, ActivityImpl.I
 		#region FIELDS
 	//==================================================================================================================
 
-	private ActivityImpl Impl;
+	public bool IsActive { get; private set; } = false;
+	public TimeSpan ActiveTimeSpan { get; private set; } = TimeSpan.Zero;
 
 	//==================================================================================================================
 		#endregion
 	//==================================================================================================================
 		#region COMPUTED PROPERTIES
 	//==================================================================================================================
-
-	public bool IsActive => this.Impl.IsActive;
-	public TimeSpan ActiveTimeSpan => this.Impl.ActiveTimeSpan;
-	public ProcessModeEnum ProcessModeWhenActive
-	{
-		get => this.Impl.ProcessModeWhenActive;
-		set => this.Impl.ProcessModeWhenActive = value;
-	}
-	public ProcessModeEnum ProcessModeWhenInactive
-	{
-		get => this.Impl.ProcessModeWhenInactive;
-		set => this.Impl.ProcessModeWhenInactive = value;
-	}
 
 	//==================================================================================================================
 		#endregion
@@ -103,34 +82,36 @@ public abstract partial class ActivityNode2D : Node2D, IActivity, ActivityImpl.I
 	#region OVERRIDES & VIRTUALS
 	//==================================================================================================================
 
-	public override Array<Dictionary> _GetPropertyList() => this.Impl._GetPropertyList();
-	public override Variant _Get(StringName property) => this.Impl._Get(property);
-	public override bool _Set(StringName property, Variant value) => this.Impl._Set(property, value);
-	public override void _EnterTree() => this.Impl._EnterTree();
-	public override void _ExitTree() => this.Impl._ExitTree();
-	public override void _Ready() => this.Impl._Ready();
-	public override void _Process(double delta) => this.Impl._Process(delta);
-	public override void _PhysicsProcess(double delta) => this.Impl._PhysicsProcess(delta);
+	public override void _Process(double delta)
+	{
+		if (Engine.IsEditorHint())
+		{
+			this.SetProcess(false);
+			return;
+		}
+		if (this.IsActive)
+			this._ActivityProcess(delta);
+	}
 
-	void ActivityImpl.IWrapper._ActivityWillStart(string mode, Variant argument, GodotCancellationController controller)
-		=> this._ActivityWillStart(mode, argument, controller);
-	void ActivityImpl.IWrapper._ActivityStarted(string mode, Variant argument)
-		=> this._ActivityStarted(mode, argument);
-	void ActivityImpl.IWrapper._ActivityProcess(double delta)
-		=> this._ActivityProcess(delta);
-	void ActivityImpl.IWrapper._ActivityPhysicsProcess(double delta)
-		=> this._ActivityPhysicsProcess(delta);
-	void ActivityImpl.IWrapper._ActivityWillFinish(string reason, Variant details, GodotCancellationController controller)
-		=> this._ActivityWillFinish(reason, details, controller);
-	void ActivityImpl.IWrapper._ActivityFinished(string reason, Variant details)
-		=> this._ActivityFinished(reason, details);
+	public override void _PhysicsProcess(double delta)
+	{
+		if (Engine.IsEditorHint())
+		{
+			this.SetPhysicsProcess(false);
+			return;
+		}
+		if (!this.IsActive)
+			return;
+		this.ActiveTimeSpan += TimeSpan.FromSeconds(delta);
+		this._ActivityPhysicsProcess(delta);
+	}
 
-	protected virtual void _ActivityWillStart(string mode, Variant argument, GodotCancellationController controller) {}
-	protected virtual void _ActivityStarted(string mode, Variant argument) {}
-	protected virtual void _ActivityProcess(double delta) {}
-	protected virtual void _ActivityPhysicsProcess(double delta) {}
-	protected virtual void _ActivityWillFinish(string reason, Variant details, GodotCancellationController controller) {}
-	protected virtual void _ActivityFinished(string reason, Variant details) {}
+	protected virtual void _ActivityWillStart(string mode, Variant argument, GodotCancellationController controller) { }
+	protected virtual void _ActivityStarted(string mode, Variant argument) { }
+	protected virtual void _ActivityProcess(double delta) { }
+	protected virtual void _ActivityPhysicsProcess(double delta) { }
+	protected virtual void _ActivityWillFinish(string reason, Variant details, GodotCancellationController controller) { }
+	protected virtual void _ActivityFinished(string reason, Variant details) { }
 
 	//==================================================================================================================
 		#endregion
@@ -138,8 +119,48 @@ public abstract partial class ActivityNode2D : Node2D, IActivity, ActivityImpl.I
 		#region METHODS
 	//==================================================================================================================
 
-	public bool Start(string mode = "", Variant argument = new Variant()) => this.Impl.Start(mode, argument);
-	public bool Finish(string reason = "", Variant details = new Variant()) => this.Impl.Finish(reason, details);
+	public bool Start(string mode = "", Variant argument = new Variant())
+	{
+		if (this.IsActive)
+			return true;
+		GodotCancellationController controller = new GodotCancellationController();
+		this._ActivityWillStart(mode, argument, controller);
+		if (controller.IsCancellationRequested)
+			return false;
+		this.EmitSignalWillStart(mode, argument, controller);
+		if (controller.IsCancellationRequested)
+			return false;
+		this.SetProcessMode(this.ProcessModeWhenActive);
+		this.IsActive = true;
+		this.ActiveTimeSpan = TimeSpan.Zero;
+		Callable.From(() =>
+		{
+			this._ActivityStarted(mode, argument);
+			this.EmitSignalStarted(mode, argument);
+		}).CallDeferred();
+		return true;
+	}
+	public bool Finish(string reason = "", Variant details = new Variant())
+	{
+		if (!this.IsActive)
+			return true;
+		GodotCancellationController controller = new GodotCancellationController();
+		this._ActivityWillFinish(reason, details, controller);
+		if (controller.IsCancellationRequested)
+			return false;
+		this.EmitSignalWillFinish(reason, details, controller);
+		if (controller.IsCancellationRequested)
+			return false;
+		this.SetProcessMode(this.ProcessModeWhenInactive);
+		this.IsActive = false;
+		this.ActiveTimeSpan = TimeSpan.Zero;
+		Callable.From(() =>
+		{
+			this._ActivityFinished(reason, details);
+			this.EmitSignalFinished(reason, details);
+		}).CallDeferred();
+		return true;
+	}
 
 	//==================================================================================================================
 		#endregion

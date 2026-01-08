@@ -98,4 +98,16 @@ public static class IEnumerableExtensionMethods
 			el4 = enumerator.MoveNext() ? enumerator.Current : default;
 		}
 	}
+
+	extension<T>(IEnumerable<T?> self)
+	{
+		public IEnumerable<T> WhereNotNull()
+		{
+			foreach (T? item in self) {
+				if (item != null) {
+					yield return item;
+				}
+			}
+		}
+	}
 }

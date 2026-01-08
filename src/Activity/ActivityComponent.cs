@@ -7,85 +7,61 @@ using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils;
 
-public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
+public abstract partial class ActivityComponent : Activity, IActivityComponent
 {
 	//==================================================================================================================
-		#region STATICS & CONSTRUCTORS
+	#region STATICS
 	//==================================================================================================================
 
-	public const string PROPERTY_CATEGORY_NAME = "ActivityComponent";
 	public const string PROPERTY_GROUP_START_STRATEGY_NAME = "Start Strategy";
 	public const string PROPERTY_GROUP_START_STRATEGY_PREFIX = "Start";
 	public const string PROPERTY_GROUP_FINISH_STRATEGY_NAME = "Finish Strategy";
 	public const string PROPERTY_GROUP_FINISH_STRATEGY_PREFIX = "Finish";
 
-	public ActivityComponentImpl(IWrapper wrapper) : base(wrapper) {
-		WRAPPER = wrapper;
-		this.EventStarted += (_mode, _argument) => this.State = StateEnum.Started;
-		this.EventFinished += (_reason, _details) => this.State = StateEnum.Finished;
-		if (this.StartStrategyImpl == null)
-			this.StartStrategyImpl = this.CreateTimingStrategyHandler(this.StartStrategy);
-		if (this.FinishStrategyImpl == null)
-			this.FinishStrategyImpl = this.CreateTimingStrategyHandler(this.FinishStrategy);
-	}
-
 	//==================================================================================================================
-		#endregion
+	#endregion
 	//==================================================================================================================
-		#region EXPORTS
+	#region EXPORTS
 	//==================================================================================================================
 
-	// [Export] public
-
-	//==================================================================================================================
-		#endregion
-	//==================================================================================================================
-		#region FIELDS
-	//==================================================================================================================
-
-	public bool Enabled = true;
-	public TimingStrategyEnum StartStrategy
+	[Export] public bool Enabled = true;
+	[Export] public TimingStrategyEnum StartStrategy
 		{ get; set { field = value; this.StartStrategyImpl = this.CreateTimingStrategyHandler(value); } }
 		= TimingStrategyEnum.Immediate;
-	public TimingStrategyEnum FinishStrategy
+	[Export] public TimingStrategyEnum FinishStrategy
 		{ get; set { field = value; this.FinishStrategyImpl = this.CreateTimingStrategyHandler(value); } }
 		= TimingStrategyEnum.Never;
+
+	//==================================================================================================================
+	#endregion
+	//==================================================================================================================
+	#region FIELDS
+	//==================================================================================================================
+
 	public StateEnum State { get; private set; } = StateEnum.Inactive;
 
-	private TimingStrategy StartStrategyImpl;
-	private TimingStrategy FinishStrategyImpl;
-	private IWrapper WRAPPER { get; init; }
+	private TimingStrategy StartStrategyImpl = new NeverTimingStrategy();
+	private TimingStrategy FinishStrategyImpl = new NeverTimingStrategy();
 
 	//==================================================================================================================
-		#endregion
+	#endregion
 	//==================================================================================================================
-		#region COMPUTED PROPERTIES
-	//==================================================================================================================
-
-	private IActivity? ParentActivity => WRAPPER.GetParentOrNull<IActivity>();
-	IActivity? IActivityComponent.ParentActivity => this.ParentActivity;
-
-	//==================================================================================================================
-		#endregion
-	//==================================================================================================================
-		#region EVENTS & SIGNALS
+	#region COMPUTED PROPERTIES
 	//==================================================================================================================
 
-	// [Signal] public delegate void EventHandler();
+	public IActivity? ParentActivity => this.GetAncestorOrDefault<IActivity>();
 
 	//==================================================================================================================
-		#endregion
+	#endregion
 	//==================================================================================================================
-		#region INTERNAL TYPES
+	#region EVENTS & SIGNALS
 	//==================================================================================================================
 
-	public new interface IWrapper : ActivityImpl.IWrapper
-	{
-		public void _ParentActivityWillStart(string mode, Variant argument, GodotCancellationController controller);
-		public void _ParentActivityStarted(string mode, Variant argument);
-		public void _ParentActivityWillFinish(string reason, Variant details, GodotCancellationController controller);
-		public void _ParentActivityFinished(string reason, Variant details);
-	}
+	//==================================================================================================================
+	#endregion
+	//==================================================================================================================
+	#region INTERNAL TYPES
+	//==================================================================================================================
 
 	public enum StateEnum : byte
 	{
@@ -118,39 +94,18 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 	}
 
 	//==================================================================================================================
-		#endregion
+	#endregion
 	//==================================================================================================================
-		#region OVERRIDES & VIRTUALS
+	#region OVERRIDES & VIRTUALS
 	//==================================================================================================================
 
 	public override Godot.Collections.Array<Godot.Collections.Dictionary> _GetPropertyList()
-		=> base._GetPropertyList()
-			.Select(GodotPropertyInfo.FromGodotDictionary)
-			.Append(new()
-			{
-				Name = PROPERTY_CATEGORY_NAME,
-				Usage = [PropertyUsageFlags.Category],
-			})
-			.Append(new()
-			{
-				Name = nameof(this.Enabled),
-				Type = Variant.Type.Bool,
-				DefaultValue = this._PropertyGetRevert(nameof(this.Enabled)),
-			})
+		=> Enumerable.Empty<GodotPropertyInfo>()
 			.Append(new()
 			{
 				Name = PROPERTY_GROUP_START_STRATEGY_NAME,
 				Usage = [PropertyUsageFlags.Group],
 				HintString = PROPERTY_GROUP_START_STRATEGY_PREFIX,
-			})
-			.Append(new()
-			{
-				Name = nameof(this.StartStrategy),
-				Type = Variant.Type.Int,
-				Hint = PropertyHint.Enum,
-				HintString = Enum.GetNames<TimingStrategyEnum>().Join(","),
-				Usage = [PropertyUsageFlags.Default, PropertyUsageFlags.UpdateAllIfModified],
-				DefaultValue = (long) TimingStrategyEnum.Immediate,
 			})
 			.Concat(
 				this.StartStrategyImpl._GetPropertyList()
@@ -166,15 +121,6 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 				Usage = [PropertyUsageFlags.Group],
 				HintString = PROPERTY_GROUP_FINISH_STRATEGY_PREFIX,
 			})
-			.Append(new GodotPropertyInfo()
-			{
-				Name = nameof(this.FinishStrategy),
-				Type = Variant.Type.Int,
-				Hint = PropertyHint.Enum,
-				HintString = Enum.GetNames<TimingStrategyEnum>().Join(","),
-				Usage = [PropertyUsageFlags.Default, PropertyUsageFlags.UpdateAllIfModified],
-				DefaultValue = (long) TimingStrategyEnum.Never,
-			})
 			.Concat(
 				this.FinishStrategyImpl._GetPropertyList()
 					.Select(GodotPropertyInfo.FromGodotDictionary)
@@ -184,13 +130,11 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 					})
 			)
 			.Select(GodotPropertyInfo.ToGodotDictionary)
+			.Concat(base._GetPropertyList())
 			.ToGodotArrayT();
 	public override Variant _Get(StringName property)
 		=> property.ToString() switch
 		{
-			nameof(this.Enabled) => this.Enabled,
-			nameof(this.StartStrategy) => (long) this.StartStrategy,
-			nameof(this.FinishStrategy) => (long) this.FinishStrategy,
 			string propertyName when propertyName.StartsWith(PROPERTY_GROUP_START_STRATEGY_PREFIX)
 				=> this.StartStrategyImpl._Get(property.ToString().Substring(PROPERTY_GROUP_START_STRATEGY_PREFIX.Length)),
 			string propertyName when propertyName.StartsWith(PROPERTY_GROUP_FINISH_STRATEGY_PREFIX)
@@ -199,31 +143,15 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 		};
 	public override bool _Set(StringName property, Variant value)
 	{
-		switch (property.ToString())
-		{
-			case nameof(this.Enabled):
-				this.Enabled = value.AsBool();
-				return true;
-			case nameof(this.StartStrategy):
-				this.StartStrategy = (TimingStrategyEnum) value.AsInt64();
-				return true;
-			case nameof(this.FinishStrategy):
-				this.FinishStrategy = (TimingStrategyEnum) value.AsInt64();
-				return true;
-			default:
-				if (property.ToString().StartsWith(PROPERTY_GROUP_START_STRATEGY_PREFIX))
-					return this.StartStrategyImpl._Set(property.ToString().Substring(PROPERTY_GROUP_START_STRATEGY_PREFIX.Length), value);
-				if (property.ToString().StartsWith(PROPERTY_GROUP_FINISH_STRATEGY_PREFIX))
-					return this.FinishStrategyImpl._Set(property.ToString().Substring(PROPERTY_GROUP_FINISH_STRATEGY_PREFIX.Length), value);
-				return base._Set(property, value);
-		}
+		if (property.ToString().StartsWith(PROPERTY_GROUP_START_STRATEGY_PREFIX))
+			return this.StartStrategyImpl._Set(property.ToString().Substring(PROPERTY_GROUP_START_STRATEGY_PREFIX.Length), value);
+		if (property.ToString().StartsWith(PROPERTY_GROUP_FINISH_STRATEGY_PREFIX))
+			return this.FinishStrategyImpl._Set(property.ToString().Substring(PROPERTY_GROUP_FINISH_STRATEGY_PREFIX.Length), value);
+		return base._Set(property, value);
 	}
 	public override bool _PropertyCanRevert(StringName property)
 		=> property.ToString() switch
 		{
-			nameof(this.Enabled) => this.Enabled != this._PropertyGetRevert(property).AsBool(),
-			nameof(this.StartStrategy) => this.StartStrategy != (TimingStrategyEnum) this._PropertyGetRevert(property).AsInt64(),
-			nameof(this.FinishStrategy) => this.FinishStrategy != (TimingStrategyEnum) this._PropertyGetRevert(property).AsInt64(),
 			string propertyName when propertyName.StartsWith(PROPERTY_GROUP_START_STRATEGY_PREFIX)
 				=> this.StartStrategyImpl._PropertyCanRevert(property.ToString().Substring(PROPERTY_GROUP_START_STRATEGY_PREFIX.Length)),
 			string propertyName when propertyName.StartsWith(PROPERTY_GROUP_FINISH_STRATEGY_PREFIX)
@@ -233,9 +161,6 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 	public override Variant _PropertyGetRevert(StringName property)
 		=> property.ToString() switch
 		{
-			nameof(this.Enabled) => true,
-			nameof(this.StartStrategy) => (long) TimingStrategyEnum.Immediate,
-			nameof(this.FinishStrategy) => (long) TimingStrategyEnum.Never,
 			string propertyName when propertyName.StartsWith(PROPERTY_GROUP_START_STRATEGY_PREFIX)
 				=> this.StartStrategyImpl._PropertyGetRevert(property.ToString().Substring(PROPERTY_GROUP_START_STRATEGY_PREFIX.Length)),
 			string propertyName when propertyName.StartsWith(PROPERTY_GROUP_FINISH_STRATEGY_PREFIX)
@@ -247,20 +172,24 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 		base._EnterTree();
 		if (Engine.IsEditorHint())
 			return;
-		this.ParentActivity?.EventWillStart += this.OnActivityWillStart;
-		this.ParentActivity?.EventStarted += this.OnActivityStarted;
-		this.ParentActivity?.EventWillFinish += this.OnActivityWillFinish;
-		this.ParentActivity?.EventFinished += this.OnActivityFinished;
+		this.Started += this.OnStarted;
+		this.Finished += this.OnFinished;
+		this.ParentActivity?.EventWillStart += this._ParentActivityWillStart;
+		this.ParentActivity?.EventStarted += this._ParentActivityStarted;
+		this.ParentActivity?.EventWillFinish += this._ParentActivityWillFinish;
+		this.ParentActivity?.EventFinished += this._ParentActivityFinished;
 	}
 	public override void _ExitTree()
 	{
 		base._ExitTree();
 		if (Engine.IsEditorHint())
 			return;
-		this.ParentActivity?.EventWillStart -= this.OnActivityWillStart;
-		this.ParentActivity?.EventStarted -= this.OnActivityStarted;
-		this.ParentActivity?.EventWillFinish -= this.OnActivityWillFinish;
-		this.ParentActivity?.EventFinished -= this.OnActivityFinished;
+		this.Started -= this.OnStarted;
+		this.Finished -= this.OnFinished;
+		this.ParentActivity?.EventWillStart -= this._ParentActivityWillStart;
+		this.ParentActivity?.EventStarted -= this._ParentActivityStarted;
+		this.ParentActivity?.EventWillFinish -= this._ParentActivityWillFinish;
+		this.ParentActivity?.EventFinished -= this._ParentActivityFinished;
 	}
 	public override void _PhysicsProcess(double delta)
 	{
@@ -268,31 +197,26 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 		if (Engine.IsEditorHint())
 			return;
 		if (this.State == StateEnum.StandBy && this.TestStartConditions())
-			this.AsActivity().Start();
+			this.Start();
 		if (this.State == StateEnum.Started && this.TestFinishConditions())
-			this.AsActivity().Finish();
+			this.Finish();
 	}
 
+	protected virtual void _ParentActivityWillStart(string mode, Variant argument, GodotCancellationController controller) {}
+	protected virtual void _ParentActivityStarted(string mode, Variant argument) {}
+	protected virtual void _ParentActivityWillFinish(string reason, Variant details, GodotCancellationController controller) {}
+	protected virtual void _ParentActivityFinished(string reason, Variant details) {}
+
 	//==================================================================================================================
-		#endregion
+	#endregion
 	//==================================================================================================================
-		#region METHODS
+	#region METHODS
 	//==================================================================================================================
 
-	private void OnActivityWillStart(string mode, Variant argument, GodotCancellationController controller)
-		=> WRAPPER._ParentActivityWillStart(mode, argument, controller);
-	private void OnActivityStarted(string mode, Variant argument)
-	{
-		this.State = StateEnum.StandBy;
-		WRAPPER._ParentActivityStarted(mode, argument);
-	}
-	private void OnActivityWillFinish(string reason, Variant details, GodotCancellationController controller)
-		=> WRAPPER._ParentActivityWillFinish(reason, details, controller);
-	private void OnActivityFinished(string reason, Variant details)
-	{
-		this.State = StateEnum.Finished;
-		WRAPPER._ParentActivityFinished(reason, details);
-	}
+	private void OnStarted(string mode, Variant argument)
+		=> this.State = StateEnum.Started;
+	private void OnFinished(string reason, Variant details)
+		=> this.State = StateEnum.Finished;
 
 	private bool TestStartConditions() => this.StartStrategyImpl.Test();
 	private bool TestFinishConditions() => this.FinishStrategyImpl.Test();
@@ -301,11 +225,11 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 		=> strategy switch
 		{
 			TimingStrategyEnum.Immediate => new ImmediateTimingStrategy(),
-			TimingStrategyEnum.AfterDuration => new AfterDurationTimingStrategy(WRAPPER),
+			TimingStrategyEnum.AfterDuration => new AfterDurationTimingStrategy(this),
 			TimingStrategyEnum.AnimationMarker => new AnimationMarkerTimingStrategy(),
-			TimingStrategyEnum.WhenExpressionIsTrue => new ExpressionTimingStrategy(WRAPPER),
+			TimingStrategyEnum.WhenExpressionIsTrue => new WhenExpressionIsTrueTimingStrategy(this),
 			TimingStrategyEnum.Never => new NeverTimingStrategy(),
-			_ => throw new NotImplementedException($"Timing strategy {strategy} is not implemented yet."),
+			_ => throw new NotImplementedException($"Timing strategy {strategy:G} ({strategy:D}) is not implemented yet."),
 		};
 
 	//==================================================================================================================
@@ -325,7 +249,7 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 		public override bool Test() => true;
 	}
 
-	private partial class AfterDurationTimingStrategy(IWrapper WRAPPER) : TimingStrategy
+	private partial class AfterDurationTimingStrategy(ActivityComponent WRAPPER) : TimingStrategy
 	{
 		private const double DEFAULT_DURATION = 1d;
 		private double Duration = DEFAULT_DURATION;
@@ -362,7 +286,7 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 			=> property.ToString() == nameof(Duration) ? DEFAULT_DURATION : Variant.NULL;
 		public override bool Test()
 		{
-			this.ElapsedSeconds += WRAPPER.AsNode().GetProcessDeltaTime();
+			this.ElapsedSeconds += WRAPPER.GetProcessDeltaTime();
 			if (this.ElapsedSeconds >= this.Duration)
 			{
 				this.ElapsedSeconds = 0.0;
@@ -487,9 +411,9 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 					>= this.MarkerTime - Mathf.Epsilon;
 	}
 
-	private partial class ExpressionTimingStrategy(IWrapper wrapper) : TimingStrategy
+	private partial class WhenExpressionIsTrueTimingStrategy(ActivityComponent WRAPPER) : TimingStrategy
 	{
-		private Node? Context = wrapper.AsNode();
+		private Node? Context = WRAPPER;
 		private Variant Param = new Variant();
 		private string Expression
 			{ get; set { field = value; this.Interpreter = null!; } }
@@ -569,7 +493,7 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 		public override Variant _PropertyGetRevert(StringName property)
 			=> property.ToString() switch
 			{
-				nameof(Context) => wrapper.AsNode(),
+				nameof(Context) => WRAPPER,
 				nameof(Param) => Variant.NULL,
 				nameof(Expression) => "",
 				_ => Variant.NULL,
@@ -584,6 +508,6 @@ public partial class ActivityComponentImpl : ActivityImpl, IActivityComponent
 	}
 
 	//==================================================================================================================
-		#endregion
+	#endregion
 	//==================================================================================================================
 }

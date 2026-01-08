@@ -40,31 +40,37 @@ public record GodotPropertyInfo
 		get => BackingDict["name"].AsString();
 		init => BackingDict["name"] = value;
 	}
+	public bool HasName => this.BackingDict.ContainsKey("name");
 	public string ClassName
 	{
 		get => BackingDict.GetValueOrDefault("class_name", "").AsString();
 		init => BackingDict["class_name"] = value;
 	}
+	public bool HasClassName => this.BackingDict.ContainsKey("class_name");
 	public Variant.Type Type
 	{
 		get => (Variant.Type) BackingDict.GetValueOrDefault("type", (long) Variant.Type.Nil).AsInt64();
 		init => BackingDict["type"] = (long) value;
 	}
+	public bool HasType => this.BackingDict.ContainsKey("type");
 	public PropertyHint Hint
 	{
 		get => (PropertyHint) BackingDict.GetValueOrDefault("hint", (long) PropertyHint.None).AsInt64();
 		init => BackingDict["hint"] = (long) value;
 	}
+	public bool HasHint => this.BackingDict.ContainsKey("hint");
 	public string HintString
 	{
 		get => BackingDict.GetValueOrDefault("hint_string", "").AsString();
 		init => BackingDict["hint_string"] = value;
 	}
+	public bool HasHintString => this.BackingDict.ContainsKey("hint_string");
 	public long UsageBitmask
 	{
 		get => BackingDict.GetValueOrDefault("usage", (long) PropertyUsageFlags.Default).AsInt64();
 		init => BackingDict["usage"] = value;
 	}
+	public bool HasUsageBitmask => this.BackingDict.ContainsKey("usage");
 	public HashSet<PropertyUsageFlags> Usage
 	{
 		get => Enumerable.Range(0, 64)
@@ -74,11 +80,13 @@ public record GodotPropertyInfo
 			.ToHashSet();
 		init => this.UsageBitmask = value.Aggregate(0L, (acc, flag) => acc | (long) flag);
 	}
+	public bool HasUsage => this.BackingDict.ContainsKey("usage");
 	public Variant DefaultValue
 	{
 		get => BackingDict.GetValueOrDefault("default_value", Variant.NULL);
 		init => BackingDict["default_value"] = value;
 	}
+	public bool HasDefaultValue => this.BackingDict.ContainsKey("default_value");
 
 	//==================================================================================================================
 	// METHODS

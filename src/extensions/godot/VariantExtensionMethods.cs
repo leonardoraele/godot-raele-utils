@@ -57,6 +57,63 @@ public static class VariantExtensionMethods
 				_ => self
 			};
 
+		public static Variant.Type Typeof<[MustBeVariant] T>()
+			=> Typeof(typeof(T));
+		public static Variant.Type Typeof(Type type)
+			=> type == typeof(bool) ? Variant.Type.Bool
+			: type == typeof(char) ? Variant.Type.String
+			: type == typeof(sbyte) ? Variant.Type.Int
+			: type == typeof(short) ? Variant.Type.Int
+			: type == typeof(int) ? Variant.Type.Int
+			: type == typeof(long) ? Variant.Type.Int
+			: type == typeof(byte) ? Variant.Type.Int
+			: type == typeof(ushort) ? Variant.Type.Int
+			: type == typeof(uint) ? Variant.Type.Int
+			: type == typeof(ulong) ? Variant.Type.Int
+			: type == typeof(float) ? Variant.Type.Float
+			: type == typeof(double) ? Variant.Type.Float
+			: type == typeof(Vector2) ? Variant.Type.Vector2
+			: type == typeof(Vector2I) ? Variant.Type.Vector2I
+			: type == typeof(Rect2) ? Variant.Type.Rect2
+			: type == typeof(Rect2I) ? Variant.Type.Rect2I
+			: type == typeof(Transform2D) ? Variant.Type.Transform2D
+			: type == typeof(Vector3) ? Variant.Type.Vector3
+			: type == typeof(Vector3I) ? Variant.Type.Vector3I
+			: type == typeof(Basis) ? Variant.Type.Basis
+			: type == typeof(Quaternion) ? Variant.Type.Quaternion
+			: type == typeof(Transform3D) ? Variant.Type.Transform3D
+			: type == typeof(Projection) ? Variant.Type.Projection
+			: type == typeof(Vector4) ? Variant.Type.Vector4
+			: type == typeof(Vector4I) ? Variant.Type.Vector4I
+			: type == typeof(Aabb) ? Variant.Type.Aabb
+			: type == typeof(Color) ? Variant.Type.Color
+			: type == typeof(Plane) ? Variant.Type.Plane
+			: type == typeof(Callable) ? Variant.Type.Callable
+			: type == typeof(Signal) ? Variant.Type.Signal
+			: type == typeof(string) ? Variant.Type.String
+			: type == typeof(byte[]) ? Variant.Type.PackedByteArray
+			: type == typeof(int[]) ? Variant.Type.PackedInt32Array
+			: type == typeof(long[]) ? Variant.Type.PackedInt64Array
+			: type == typeof(float[]) ? Variant.Type.PackedFloat32Array
+			: type == typeof(double[]) ? Variant.Type.PackedFloat64Array
+			: type == typeof(string[]) ? Variant.Type.PackedStringArray
+			: type == typeof(Vector2[]) ? Variant.Type.PackedVector2Array
+			: type == typeof(Vector3[]) ? Variant.Type.PackedVector3Array
+			: type == typeof(Vector4[]) ? Variant.Type.PackedVector4Array
+			: type == typeof(Color[]) ? Variant.Type.PackedColorArray
+			: type == typeof(StringName[]) ? Variant.Type.PackedStringArray
+			: type == typeof(NodePath[]) ? Variant.Type.PackedStringArray
+			: type == typeof(Rid[]) ? Variant.Type.Array
+			: type == typeof(StringName) ? Variant.Type.StringName
+			: type == typeof(NodePath) ? Variant.Type.NodePath
+			: type == typeof(Rid) ? Variant.Type.Rid
+			: type == typeof(Godot.Collections.Dictionary) ? Variant.Type.Dictionary
+			: type == typeof(Godot.Collections.Array) ? Variant.Type.Array
+			: type == typeof(Variant) ? Variant.Type.Nil
+			: typeof(GodotObject).IsAssignableFrom(type) ? Variant.Type.Object
+			: type.IsValueType && typeof(Enum).IsAssignableFrom(type) ? Variant.Type.Int
+			: Variant.Type.Nil;
+
 		// public Variant Validated(Variant.Type type, PropertyHint hint, string hintString)
 		// {
 		// 	Variant input = self.As(type);
@@ -127,63 +184,6 @@ public static class VariantExtensionMethods
 		// 			return input;
 		// 	};
 		// }
-
-		public static Variant.Type Typeof<[MustBeVariant] T>()
-			=> Typeof(typeof(T));
-		public static Variant.Type Typeof(Type type)
-			=> type == typeof(bool) ? Variant.Type.Bool
-			: type == typeof(char) ? Variant.Type.String
-			: type == typeof(sbyte) ? Variant.Type.Int
-			: type == typeof(short) ? Variant.Type.Int
-			: type == typeof(int) ? Variant.Type.Int
-			: type == typeof(long) ? Variant.Type.Int
-			: type == typeof(byte) ? Variant.Type.Int
-			: type == typeof(ushort) ? Variant.Type.Int
-			: type == typeof(uint) ? Variant.Type.Int
-			: type == typeof(ulong) ? Variant.Type.Int
-			: type == typeof(float) ? Variant.Type.Float
-			: type == typeof(double) ? Variant.Type.Float
-			: type == typeof(Vector2) ? Variant.Type.Vector2
-			: type == typeof(Vector2I) ? Variant.Type.Vector2I
-			: type == typeof(Rect2) ? Variant.Type.Rect2
-			: type == typeof(Rect2I) ? Variant.Type.Rect2I
-			: type == typeof(Transform2D) ? Variant.Type.Transform2D
-			: type == typeof(Vector3) ? Variant.Type.Vector3
-			: type == typeof(Vector3I) ? Variant.Type.Vector3I
-			: type == typeof(Basis) ? Variant.Type.Basis
-			: type == typeof(Quaternion) ? Variant.Type.Quaternion
-			: type == typeof(Transform3D) ? Variant.Type.Transform3D
-			: type == typeof(Projection) ? Variant.Type.Projection
-			: type == typeof(Vector4) ? Variant.Type.Vector4
-			: type == typeof(Vector4I) ? Variant.Type.Vector4I
-			: type == typeof(Aabb) ? Variant.Type.Aabb
-			: type == typeof(Color) ? Variant.Type.Color
-			: type == typeof(Plane) ? Variant.Type.Plane
-			: type == typeof(Callable) ? Variant.Type.Callable
-			: type == typeof(Signal) ? Variant.Type.Signal
-			: type == typeof(string) ? Variant.Type.String
-			: type == typeof(byte[]) ? Variant.Type.PackedByteArray
-			: type == typeof(int[]) ? Variant.Type.PackedInt32Array
-			: type == typeof(long[]) ? Variant.Type.PackedInt64Array
-			: type == typeof(float[]) ? Variant.Type.PackedFloat32Array
-			: type == typeof(double[]) ? Variant.Type.PackedFloat64Array
-			: type == typeof(string[]) ? Variant.Type.PackedStringArray
-			: type == typeof(Vector2[]) ? Variant.Type.PackedVector2Array
-			: type == typeof(Vector3[]) ? Variant.Type.PackedVector3Array
-			: type == typeof(Vector4[]) ? Variant.Type.PackedVector4Array
-			: type == typeof(Color[]) ? Variant.Type.PackedColorArray
-			: type == typeof(StringName[]) ? Variant.Type.PackedStringArray
-			: type == typeof(NodePath[]) ? Variant.Type.PackedStringArray
-			: type == typeof(Rid[]) ? Variant.Type.Array
-			: type == typeof(StringName) ? Variant.Type.StringName
-			: type == typeof(NodePath) ? Variant.Type.NodePath
-			: type == typeof(Rid) ? Variant.Type.Rid
-			: type == typeof(Godot.Collections.Dictionary) ? Variant.Type.Dictionary
-			: type == typeof(Godot.Collections.Array) ? Variant.Type.Array
-			: type == typeof(Variant) ? Variant.Type.Nil
-			: typeof(GodotObject).IsAssignableFrom(type) ? Variant.Type.Object
-			: type.IsValueType && typeof(Enum).IsAssignableFrom(type) ? Variant.Type.Int
-			: Variant.Type.Nil;
 	}
 
 	extension <[MustBeVariant] T>(T value)
@@ -253,5 +253,50 @@ public static class VariantExtensionMethods
 
 		private bool IsAnyOf(Variant.Type[] types)
 			=> types.Contains(self);
+
+		public Variant GetEmpty()
+			=> self switch
+			{
+				Variant.Type.Nil => new Variant(),
+				Variant.Type.Bool => default(bool),
+				Variant.Type.Int => default(long),
+				Variant.Type.Float => default(double),
+				Variant.Type.String => "",
+				Variant.Type.Vector2 => default(Vector2),
+				Variant.Type.Vector2I => default(Vector2I),
+				Variant.Type.Rect2 => default(Rect2),
+				Variant.Type.Rect2I => default(Rect2I),
+				Variant.Type.Vector3 => default(Vector3),
+				Variant.Type.Vector3I => default(Vector3I),
+				Variant.Type.Transform2D => default(Transform2D),
+				Variant.Type.Vector4 => default(Vector4),
+				Variant.Type.Vector4I => default(Vector4I),
+				Variant.Type.Plane => default(Plane),
+				Variant.Type.Quaternion => default(Quaternion),
+				Variant.Type.Aabb => default(Aabb),
+				Variant.Type.Basis => default(Basis),
+				Variant.Type.Transform3D => default(Transform3D),
+				Variant.Type.Projection => default(Projection),
+				Variant.Type.Color => default(Color),
+				Variant.Type.StringName => "",
+				Variant.Type.NodePath => "",
+				Variant.Type.Rid => default(Rid),
+				Variant.Type.Object => Variant.NULL,
+				Variant.Type.Callable => Callable.NOOP,
+				Variant.Type.Signal => default(Signal),
+				Variant.Type.Dictionary => new Godot.Collections.Dictionary(),
+				Variant.Type.Array => new Godot.Collections.Array(),
+				Variant.Type.PackedByteArray => new byte[0],
+				Variant.Type.PackedInt32Array => new int[0],
+				Variant.Type.PackedInt64Array => new long[0],
+				Variant.Type.PackedFloat32Array => new float[0],
+				Variant.Type.PackedFloat64Array => new double[0],
+				Variant.Type.PackedStringArray => new string[0],
+				Variant.Type.PackedVector2Array => new Vector2[0],
+				Variant.Type.PackedVector3Array => new Vector3[0],
+				Variant.Type.PackedColorArray => new Color[0],
+				Variant.Type.PackedVector4Array => new Vector4[0],
+				_ => Variant.NULL,
+			};
 	}
 }

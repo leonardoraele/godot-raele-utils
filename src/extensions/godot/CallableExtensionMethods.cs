@@ -5,6 +5,10 @@ namespace Raele.GodotUtils.Extensions;
 
 public static class CallableExtensionMethods
 {
+	extension (Callable)
+	{
+		public static Callable NOOP => Callable.From(() => {});
+	}
 	extension(Delegate self)
 	{
 		public Callable ToCallable()
