@@ -7,7 +7,7 @@ using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils;
 
-public partial class ActivityImpl(ActivityImpl.IWrapper WRAPPER) : GodotObject, IActivity
+public class ActivityImpl(ActivityImpl.IWrapper WRAPPER) : IActivity
 {
 	//==================================================================================================================
 	#region STATICS & CONSTRUCTORS
@@ -75,7 +75,7 @@ public partial class ActivityImpl(ActivityImpl.IWrapper WRAPPER) : GodotObject, 
 	#region OVERRIDES & VIRTUALS
 	//==================================================================================================================
 
-	public override Godot.Collections.Array<Godot.Collections.Dictionary> _GetPropertyList()
+	public virtual Godot.Collections.Array<Godot.Collections.Dictionary> _GetPropertyList()
 		=> new List<GodotPropertyInfo>()
 			.Append(new()
 			{
@@ -100,7 +100,8 @@ public partial class ActivityImpl(ActivityImpl.IWrapper WRAPPER) : GodotObject, 
 			})
 			.Select(GodotPropertyInfo.ToGodotDictionary)
 			.ToGodotArrayT();
-	public override bool _Set(StringName property, Variant value)
+	public virtual void _ValidateProperty(Godot.Collections.Dictionary property) {}
+	public virtual bool _Set(StringName property, Variant value)
 	{
 		switch (property.ToString())
 		{
@@ -113,7 +114,7 @@ public partial class ActivityImpl(ActivityImpl.IWrapper WRAPPER) : GodotObject, 
 		}
 		return false;
 	}
-	public override Variant _Get(StringName property)
+	public virtual Variant _Get(StringName property)
 		=> property.ToString() switch
 		{
 			nameof(this.ProcessModeWhenActive) => (long) this.ProcessModeWhenActive,
