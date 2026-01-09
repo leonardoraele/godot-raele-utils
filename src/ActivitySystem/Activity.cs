@@ -82,6 +82,14 @@ public partial class Activity : Node, IActivity
 	#region OVERRIDES & VIRTUALS
 	//==================================================================================================================
 
+	public override void _Ready()
+	{
+		base._Ready();
+		this.IsActive = false;
+		this.ActiveTimeSpan = TimeSpan.Zero;
+		this.ProcessMode = this.ProcessModeWhenInactive;
+	}
+
 	public override void _Process(double delta)
 	{
 		if (Engine.IsEditorHint())
@@ -119,47 +127,72 @@ public partial class Activity : Node, IActivity
 		#region METHODS
 	//==================================================================================================================
 
-	public bool Start(string mode = "", Variant argument = new Variant())
+	public void Start(string mode = "", Variant argument = new Variant())
 	{
 		if (this.IsActive)
-			return true;
+			return;
+		if (!this.TestWillStart(mode, argument))
+			return;
+		this.ForceStart();
+		this.OnStarted(mode, argument);
+	}
+
+	private bool TestWillStart(string mode, Variant argument)
+	{
 		GodotCancellationController controller = new GodotCancellationController();
 		this._ActivityWillStart(mode, argument, controller);
 		if (controller.IsCancellationRequested)
 			return false;
 		this.EmitSignalWillStart(mode, argument, controller);
-		if (controller.IsCancellationRequested)
-			return false;
-		this.SetProcessMode(this.ProcessModeWhenActive);
+		return !controller.IsCancellationRequested;
+	}
+
+	private void ForceStart()
+	{
+		this.ProcessMode = this.ProcessModeWhenActive;
 		this.IsActive = true;
 		this.ActiveTimeSpan = TimeSpan.Zero;
-		Callable.From(() =>
-		{
-			this._ActivityStarted(mode, argument);
-			this.EmitSignalStarted(mode, argument);
-		}).CallDeferred();
-		return true;
 	}
-	public bool Finish(string reason = "", Variant details = new Variant())
+
+	private void OnStarted(string mode, Variant argument)
+	{
+		this._ActivityStarted(mode, argument);
+		this.EmitSignalStarted(mode, argument);
+	}
+
+	//------------------------------------------------------------------------------------------------------------------
+
+	public void Finish(string reason = "", Variant details = new Variant())
 	{
 		if (!this.IsActive)
-			return true;
+			return;
+		if (!this.TestWillFinish(reason, details))
+			return;
+		this.ForceFinish();
+		this.OnFinished(reason, details);
+	}
+
+	private bool TestWillFinish(string reason, Variant details)
+	{
 		GodotCancellationController controller = new GodotCancellationController();
 		this._ActivityWillFinish(reason, details, controller);
 		if (controller.IsCancellationRequested)
 			return false;
 		this.EmitSignalWillFinish(reason, details, controller);
-		if (controller.IsCancellationRequested)
-			return false;
-		this.SetProcessMode(this.ProcessModeWhenInactive);
+		return !controller.IsCancellationRequested;
+	}
+
+	private void ForceFinish()
+	{
+		this.ProcessMode = this.ProcessModeWhenInactive;
 		this.IsActive = false;
 		this.ActiveTimeSpan = TimeSpan.Zero;
-		Callable.From(() =>
-		{
-			this._ActivityFinished(reason, details);
-			this.EmitSignalFinished(reason, details);
-		}).CallDeferred();
-		return true;
+	}
+
+	private void OnFinished(string reason, Variant details)
+	{
+		this._ActivityFinished(reason, details);
+		this.EmitSignalFinished(reason, details);
 	}
 
 	//==================================================================================================================

@@ -36,8 +36,8 @@ public interface IActivity
 	public event Action<string, Variant, GodotCancellationController> EventWillFinish;
 	public event Action<string, Variant> EventFinished;
 
-	public bool Start(string mode = "", Variant argument = new Variant());
-	public bool Finish(string reason = "", Variant details = new Variant());
+	public void Start(string mode = "", Variant argument = new Variant());
+	public void Finish(string reason = "", Variant details = new Variant());
 
 	//==================================================================================================================
 	#endregion
