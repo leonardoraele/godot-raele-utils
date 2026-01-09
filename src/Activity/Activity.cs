@@ -4,7 +4,7 @@ using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils;
 
-public abstract partial class Activity : Node, IActivity
+public partial class Activity : Node, IActivity
 {
 	//==================================================================================================================
 		#region STATICS

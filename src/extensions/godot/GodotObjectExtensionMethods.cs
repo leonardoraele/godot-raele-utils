@@ -1,5 +1,7 @@
 using System;
+using System.Linq;
 using Godot;
+using static Godot.GodotObject;
 
 namespace Raele.GodotUtils.Extensions;
 
@@ -11,6 +13,35 @@ public static class GodotObjectExtensionMethods
 	extension(GodotObject self)
 	{
 		public bool IsInstanceValid() => GodotObject.IsInstanceValid(self);
+
+		/// <summary>
+		/// Disconnects a signal from a callable if it is currently connected.
+		/// </summary>
+		public void DisconnectSafe(StringName signalName, Callable callable)
+		{
+			if (self.IsConnected(signalName, callable))
+				self.Disconnect(signalName, callable);
+		}
+
+		// public void Connect(
+		// 	StringName signal,
+		// 	Callable callable,
+		// 	GodotCancellationToken cancellationToken,
+		// 	params ConnectFlags[] connectFlags
+		// )
+		// 	=> self.Connect(signal, callable, cancellationToken.BackingToken, connectFlags);
+
+		// public void Connect(
+		// 	StringName signal,
+		// 	Callable callable,
+		// 	System.Threading.CancellationToken cancellationToken,
+		// 	params ConnectFlags[] connectFlags
+		// )
+		// {
+		// 	uint flags = connectFlags.Aggregate(0u, (acc, flag) => acc | (uint) flag);
+		// 	self.Connect(signal, callable, flags);
+		// 	cancellationToken.Register(() => self.Disconnect(signal, callable));
+		// }
 
 		public void CallDebouncedRealTime(TimeSpan delay, StringName methodName, params Variant[] args)
 			=> self._CallDebounced(methodName, delay.TotalSeconds, ignoreTimeScale: true, args);
@@ -85,24 +116,6 @@ public static class GodotObjectExtensionMethods
 				Engine.GetSceneTree().Root.AddChild(timer);
 				timer.Start(delaySeconds);
 				self.Call(methodName, args);
-			}
-		}
-
-		[Obsolete("Use CallDebounced(GodotObject.MethodName.EmitSignal, ...) or CallDebouncedRealTime(...) instead.")]
-		public void EmitSignalDebounced(StringName signalName, float delaySeconds = 0.200f, bool ignoreTimeScale = false, params Variant[] args)
-			=> self._CallDebounced(signalName, delaySeconds, ignoreTimeScale, args);
-		[Obsolete("Use CallDebounced(GodotObject.MethodName.EmitSignal, ...) or CallDebouncedRealTime(...) instead.")]
-		public void EmitSignalThrottled(StringName signalName, float delaySeconds = 0.200f, bool ignoreTimeScale = false, params Variant[] args)
-		{
-			string timerName = $"_{nameof(EmitSignalThrottled)}_{self.GetInstanceId()}_{signalName}";
-			Timer? timer = Engine.GetSceneTree().Root.GetNodeOrNull<Timer>(timerName);
-			if (timer == null)
-			{
-				timer = new Timer() { Name = timerName, OneShot = true, IgnoreTimeScale = ignoreTimeScale };
-				timer.Timeout += timer.QueueFree;
-				Engine.GetSceneTree().Root.AddChild(timer);
-				timer.Start(delaySeconds);
-				self.EmitSignal(signalName, args);
 			}
 		}
 	}

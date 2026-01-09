@@ -7,16 +7,19 @@ using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils;
 
-public abstract partial class ActivityComponent : Activity, IActivityComponent
+[Tool]
+public partial class ActivityComponent : Activity, IActivityComponent
 {
 	//==================================================================================================================
 	#region STATICS
 	//==================================================================================================================
 
-	public const string PROPERTY_GROUP_START_STRATEGY_NAME = "Start Strategy";
-	public const string PROPERTY_GROUP_START_STRATEGY_PREFIX = "Start";
-	public const string PROPERTY_GROUP_FINISH_STRATEGY_NAME = "Finish Strategy";
-	public const string PROPERTY_GROUP_FINISH_STRATEGY_PREFIX = "Finish";
+	private const TimingStrategyEnum DEFAULT_START_STRATEGY = TimingStrategyEnum.Immediate;
+	private const TimingStrategyEnum DEFAULT_FINISH_STRATEGY = TimingStrategyEnum.Never;
+	private const string PROPERTY_GROUP_START_STRATEGY_NAME = "Start Strategy";
+	private const string PROPERTY_GROUP_START_STRATEGY_PREFIX = "Start";
+	private const string PROPERTY_GROUP_FINISH_STRATEGY_NAME = "Finish Strategy";
+	private const string PROPERTY_GROUP_FINISH_STRATEGY_PREFIX = "Finish";
 
 	//==================================================================================================================
 	#endregion
@@ -25,12 +28,6 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 	//==================================================================================================================
 
 	[Export] public bool Enabled = true;
-	[Export] public TimingStrategyEnum StartStrategy
-		{ get; set { field = value; this.StartStrategyImpl = this.CreateTimingStrategyHandler(value); } }
-		= TimingStrategyEnum.Immediate;
-	[Export] public TimingStrategyEnum FinishStrategy
-		{ get; set { field = value; this.FinishStrategyImpl = this.CreateTimingStrategyHandler(value); } }
-		= TimingStrategyEnum.Never;
 
 	//==================================================================================================================
 	#endregion
@@ -39,6 +36,12 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 	//==================================================================================================================
 
 	public StateEnum State { get; private set; } = StateEnum.Inactive;
+	public TimingStrategyEnum StartStrategy
+		{ get; set { field = value; this.StartStrategyImpl = this.CreateTimingStrategyHandler(value); } }
+		= DEFAULT_START_STRATEGY;
+	public TimingStrategyEnum FinishStrategy
+		{ get; set { field = value; this.FinishStrategyImpl = this.CreateTimingStrategyHandler(value); } }
+		= DEFAULT_FINISH_STRATEGY;
 
 	private ITimingStrategy StartStrategyImpl = new NeverTimingStrategy();
 	private ITimingStrategy FinishStrategyImpl = new NeverTimingStrategy();
@@ -63,7 +66,7 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 	#region INTERNAL TYPES
 	//==================================================================================================================
 
-	public enum StateEnum : byte
+	public enum StateEnum : sbyte
 	{
 		/// <summary>
 		/// The owner ability is not active.
@@ -72,25 +75,25 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 		/// <summary>
 		/// The ability has started but this ability component has not started itself yet.
 		/// </summary>
-		StandBy = 64,
+		StandBy = 32,
 		/// <summary>
 		/// The ability component is active.
 		/// </summary>
-		Started = 128,
+		Started = 64,
 		/// <summary>
 		/// The ability component has finished its activity and is now waiting for the owner ability to finish before it
 		/// can be activated again.
 		/// </summary>
-		Finished = 192,
+		Finished = 96,
 	}
 
-	public enum TimingStrategyEnum : byte
+	public enum TimingStrategyEnum : sbyte
 	{
-		Immediate = 0,
-		AfterDuration = 64,
-		AnimationMarker = 128,
-		WhenExpressionIsTrue = 192,
-		Never = 255,
+		Immediate = 8,
+		AfterDuration = 32,
+		AnimationMarker = 64,
+		WhenExpressionIsTrue = 96,
+		Never = 127,
 	}
 
 	//==================================================================================================================
@@ -100,12 +103,26 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 	//==================================================================================================================
 
 	public override Godot.Collections.Array<Godot.Collections.Dictionary> _GetPropertyList()
-		=> Enumerable.Empty<GodotPropertyInfo>()
+		=> (base._GetPropertyList() ?? [])
+			.Select(GodotPropertyInfo.FromGodotDictionary)
+			.Append(new()
+			{
+				Name = nameof(ActivityComponent),
+				Usage = [PropertyUsageFlags.Category],
+			})
 			.Append(new()
 			{
 				Name = PROPERTY_GROUP_START_STRATEGY_NAME,
-				Usage = [PropertyUsageFlags.Group],
 				HintString = PROPERTY_GROUP_START_STRATEGY_PREFIX,
+				Usage = [PropertyUsageFlags.Group],
+			})
+			.Append(new()
+			{
+				Name = nameof(this.StartStrategy),
+				Type = Variant.Type.Int,
+				Hint = PropertyHint.Enum,
+				HintString = Enum.GetValues<TimingStrategyEnum>().Select(value => $"{value}:{value:D}").JoinIntoString(","),
+				Usage = [PropertyUsageFlags.Default, PropertyUsageFlags.UpdateAllIfModified],
 			})
 			.Concat(
 				this.StartStrategyImpl._GetPropertyList()
@@ -118,8 +135,16 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 			.Append(new GodotPropertyInfo()
 			{
 				Name = PROPERTY_GROUP_FINISH_STRATEGY_NAME,
-				Usage = [PropertyUsageFlags.Group],
 				HintString = PROPERTY_GROUP_FINISH_STRATEGY_PREFIX,
+				Usage = [PropertyUsageFlags.Group],
+			})
+			.Append(new()
+			{
+				Name = nameof(this.FinishStrategy),
+				Type = Variant.Type.Int,
+				Hint = PropertyHint.Enum,
+				HintString = Enum.GetValues<TimingStrategyEnum>().Select(value => $"{value}:{value:D}").JoinIntoString(","),
+				Usage = [PropertyUsageFlags.Default, PropertyUsageFlags.UpdateAllIfModified],
 			})
 			.Concat(
 				this.FinishStrategyImpl._GetPropertyList()
@@ -130,7 +155,6 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 					})
 			)
 			.Select(GodotPropertyInfo.ToGodotDictionary)
-			.Concat(base._GetPropertyList() ?? [])
 			.ToGodotArrayT();
 	public override Variant _Get(StringName property)
 		=> property.ToString() switch
@@ -152,6 +176,8 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 	public override bool _PropertyCanRevert(StringName property)
 		=> property.ToString() switch
 		{
+			nameof(this.StartStrategy) => this.StartStrategy != DEFAULT_START_STRATEGY,
+			nameof(this.FinishStrategy) => this.FinishStrategy != DEFAULT_FINISH_STRATEGY,
 			string propertyName when propertyName.StartsWith(PROPERTY_GROUP_START_STRATEGY_PREFIX)
 				=> this.StartStrategyImpl._PropertyCanRevert(property.ToString().Substring(PROPERTY_GROUP_START_STRATEGY_PREFIX.Length)),
 			string propertyName when propertyName.StartsWith(PROPERTY_GROUP_FINISH_STRATEGY_PREFIX)
@@ -161,6 +187,8 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 	public override Variant _PropertyGetRevert(StringName property)
 		=> property.ToString() switch
 		{
+			nameof(this.StartStrategy) => (long) DEFAULT_START_STRATEGY,
+			nameof(this.FinishStrategy) => (long) DEFAULT_FINISH_STRATEGY,
 			string propertyName when propertyName.StartsWith(PROPERTY_GROUP_START_STRATEGY_PREFIX)
 				=> this.StartStrategyImpl._PropertyGetRevert(property.ToString().Substring(PROPERTY_GROUP_START_STRATEGY_PREFIX.Length)),
 			string propertyName when propertyName.StartsWith(PROPERTY_GROUP_FINISH_STRATEGY_PREFIX)
@@ -300,7 +328,7 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 		}
 	}
 
-	private partial class AnimationMarkerTimingStrategy : ITimingStrategy
+	private partial class AnimationMarkerTimingStrategy() : ITimingStrategy
 	{
 		private AnimationPlayer? AnimationPlayer;
 		private string Animation = "";
@@ -334,14 +362,12 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 						Hint = PropertyHint.NodeType,
 						HintString = nameof(Godot.AnimationPlayer),
 						Usage = [PropertyUsageFlags.Default, PropertyUsageFlags.UpdateAllIfModified],
-						DefaultValue = this._PropertyGetRevert(nameof(AnimationPlayer)),
 					},
 					this.AnimationPlayer == null
 						? new()
 						{
 							Name = nameof(Animation),
 							Type = Variant.Type.String,
-							DefaultValue = this._PropertyGetRevert(nameof(Animation)),
 						}
 						: new()
 						{
@@ -350,14 +376,12 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 							Hint = PropertyHint.Enum,
 							HintString = this.AnimationPlayer.GetAnimationList().Append("").JoinIntoString(","),
 							Usage = [PropertyUsageFlags.Default, PropertyUsageFlags.UpdateAllIfModified],
-							DefaultValue = this._PropertyGetRevert(nameof(Animation)),
 						},
 					this.AnimationObject is not Animation animation
 						? new()
 						{
 							Name = nameof(Marker),
 							Type = Variant.Type.String,
-							DefaultValue = this._PropertyGetRevert(nameof(Marker)),
 						}
 						: new()
 						{
@@ -365,7 +389,6 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 							Type = Variant.Type.String,
 							Hint = PropertyHint.Enum,
 							HintString = animation.GetMarkerNames().Append("").JoinIntoString(","),
-							DefaultValue = this._PropertyGetRevert(nameof(Marker)),
 						}
 				}
 				.Select(GodotPropertyInfo.ToGodotDictionary)
@@ -373,7 +396,7 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 		Variant ITimingStrategy._Get(StringName property)
 			=> property.ToString() switch
 			{
-				nameof(AnimationPlayer) => this.AnimationPlayer ?? Variant.NULL,
+				nameof(AnimationPlayer) => Variant.From(this.AnimationPlayer),
 				nameof(Animation) => this.Animation,
 				nameof(Marker) => this.Marker,
 				_ => Variant.NULL,
@@ -419,12 +442,11 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 
 	private partial class WhenExpressionIsTrueTimingStrategy(ActivityComponent WRAPPER) : ITimingStrategy
 	{
-		private Node? Context = WRAPPER;
+		private Node? Context = WRAPPER.Owner ?? WRAPPER;
 		private Variant Param = new Variant();
 		private string Expression
 			{ get; set { field = value; this.Interpreter = null!; } }
-			= "";
-		private Expression Interpreter
+			= "";		private Expression Interpreter
 		{
 			get
 			{
@@ -445,21 +467,18 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 					Name = nameof(Context),
 					Type = Variant.Type.Object,
 					Hint = PropertyHint.NodeType,
-					DefaultValue = this._PropertyGetRevert(nameof(Context)),
 				},
 				new()
 				{
 					Name = nameof(Param),
 					Type = Variant.Type.Nil,
 					Usage = [PropertyUsageFlags.Default, PropertyUsageFlags.NilIsVariant],
-					DefaultValue = this._PropertyGetRevert(nameof(Param)),
 				},
 				new()
 				{
 					Name = nameof(Expression),
 					Type = Variant.Type.String,
 					Hint = PropertyHint.Expression,
-					DefaultValue = this._PropertyGetRevert(nameof(Expression)),
 				},
 			}
 			.Select(GodotPropertyInfo.ToGodotDictionary)
@@ -501,7 +520,7 @@ public abstract partial class ActivityComponent : Activity, IActivityComponent
 		private Variant _PropertyGetRevert(StringName property)
 			=> property.ToString() switch
 			{
-				nameof(Context) => WRAPPER,
+				nameof(Context) => WRAPPER.Owner ?? WRAPPER,
 				nameof(Param) => Variant.NULL,
 				nameof(Expression) => "",
 				_ => Variant.NULL,
