@@ -18,8 +18,10 @@ public partial class Activity : Node, IActivity
 		#region EXPORTS
 	//==================================================================================================================
 
-	[Export] public Node.ProcessModeEnum ProcessModeWhenActive = Node.ProcessModeEnum.Inherit;
-	[Export] public Node.ProcessModeEnum ProcessModeWhenInactive = Node.ProcessModeEnum.Disabled;
+	[ExportGroup("Use State-Based Process Mode", "ProcessMode")]
+	[Export] public bool StateBasedProcessNodeEnabled = true;
+	[Export] public ProcessModeEnum ProcessModeWhenActive = ProcessModeEnum.Inherit;
+	[Export] public ProcessModeEnum ProcessModeWhenInactive = ProcessModeEnum.Disabled;
 
 	//==================================================================================================================
 		#endregion
@@ -87,10 +89,20 @@ public partial class Activity : Node, IActivity
 	public override void _ValidateProperty(Dictionary property)
 	{
 		base._ValidateProperty(property);
-		if (property["name"].AsString() == Node.PropertyName.ProcessMode.ToString())
-		{
+		if (
+			property["name"].AsString() == Node.PropertyName.ProcessMode.ToString()
+			&& this.StateBasedProcessNodeEnabled
+		)
 			property["usage"] = (long) PropertyUsageFlags.None;
-		}
+	}
+
+	public override void _EnterTree()
+	{
+		base._EnterTree();
+		if (Engine.IsEditorHint())
+			return;
+		this.SetProcessInternal(true);
+		this.SetPhysicsProcessInternal(true);
 	}
 
 	public override void _Ready()
@@ -125,10 +137,20 @@ public partial class Activity : Node, IActivity
 		this._ActivityPhysicsProcess(delta);
 	}
 
+	public override void _Notification(int what)
+	{
+		if (what == Node.NotificationInternalProcess)
+			this._InternalProcess();
+		else if (what == Node.NotificationInternalPhysicsProcess)
+			this._InternalPhysicsProcess();
+	}
+
 	protected virtual void _ActivityWillStart(string mode, Variant argument, GodotCancellationController controller) { }
 	protected virtual void _ActivityStarted(string mode, Variant argument) { }
 	protected virtual void _ActivityProcess(double delta) { }
 	protected virtual void _ActivityPhysicsProcess(double delta) { }
+	protected virtual void _InternalProcess() {}
+	protected virtual void _InternalPhysicsProcess() {}
 	protected virtual void _ActivityWillFinish(string reason, Variant details, GodotCancellationController controller) { }
 	protected virtual void _ActivityFinished(string reason, Variant details) { }
 
@@ -164,13 +186,14 @@ public partial class Activity : Node, IActivity
 	public void ForceStart(string mode = "", Variant argument = new Variant())
 	{
 		if (!this.IsActive)
-			this.CallDeferred(MethodName.OnStarted, mode, argument);
-		this.ProcessMode = this.ProcessModeWhenActive;
+			this.CallDeferred(MethodName.OnAfterStarted, mode, argument);
 		this.IsActive = true;
 		this.ActiveTimeSpan = TimeSpan.Zero;
+		if (this.StateBasedProcessNodeEnabled)
+			this.ProcessMode = this.ProcessModeWhenActive;
 	}
 
-	private void OnStarted(string mode, Variant argument)
+	private void OnAfterStarted(string mode, Variant argument)
 	{
 		this._ActivityStarted(mode, argument);
 		this.EmitSignalStarted(mode, argument);
@@ -204,13 +227,14 @@ public partial class Activity : Node, IActivity
 	public void ForceFinish(string reason = "", Variant details = new Variant())
 	{
 		if (this.IsActive)
-			this.CallDeferred(MethodName.OnFinished, reason, details);
-		this.ProcessMode = this.ProcessModeWhenInactive;
+			this.CallDeferred(MethodName.OnAfterFinished, reason, details);
 		this.IsActive = false;
 		this.ActiveTimeSpan = TimeSpan.Zero;
+		if (this.StateBasedProcessNodeEnabled)
+			this.ProcessMode = this.ProcessModeWhenInactive;
 	}
 
-	private void OnFinished(string reason, Variant details)
+	private void OnAfterFinished(string reason, Variant details)
 	{
 		this._ActivityFinished(reason, details);
 		this.EmitSignalFinished(reason, details);

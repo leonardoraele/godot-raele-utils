@@ -25,6 +25,9 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	[Export(PropertyHint.GroupEnable)] public bool FinishStrategyEnabled = false;
 	[Export] public TimingStrategy? FinishStrategy;
 
+	// [ExportGroup("Options")]
+	// [Export] public bool KeepActiveAfterParentFinishes = false;
+
 	//==================================================================================================================
 	#endregion
 	//==================================================================================================================
@@ -109,14 +112,6 @@ public partial class ActivityComponent : Activity, IActivityComponent
 			this.Finish();
 	}
 
-	private void _StandByPhysicsProcess()
-	{
-		if (Engine.IsEditorHint() || this.State != StateEnum.StandBy)
-			return;
-		if (this.TestStartConditions())
-			this.Start();
-	}
-
 	protected override void _ActivityWillStart(string mode, Variant argument, GodotCancellationController controller)
 	{
 		base._ActivityWillStart(mode, argument, controller);
@@ -124,18 +119,37 @@ public partial class ActivityComponent : Activity, IActivityComponent
 			controller.Cancel();
 	}
 
+	protected override void _InternalPhysicsProcess()
+	{
+		base._InternalPhysicsProcess();
+		if (
+			this.State == StateEnum.StandBy
+			// Prevents starting if the node wouldn't be able to process (e.g. starting while the game is paused)
+			&& this.ProcessModeWhenActive switch
+			{
+			 	ProcessModeEnum.Always => true,
+				ProcessModeEnum.Pausable => !Engine.GetSceneTree().Paused,
+				ProcessModeEnum.WhenPaused => Engine.GetSceneTree().Paused,
+				ProcessModeEnum.Inherit => this.GetParent()?.CanProcess() == true,
+				_ => false
+			}
+			&& this.TestStartConditions()
+		)
+			this.Start();
+	}
+
 	protected override void _ActivityStarted(string mode, Variant argument)
 	{
 		base._ActivityStarted(mode, argument);
-		Engine.GetSceneTree().DisconnectSafe(SceneTree.SignalName.PhysicsFrame, Callable.From(this._StandByPhysicsProcess));
 		this.State = StateEnum.Started;
 	}
 
 	protected override void _ActivityFinished(string reason, Variant details)
 	{
 		base._ActivityFinished(reason, details);
-		if (this.State != StateEnum.Inactive)
-			this.State = StateEnum.Finished;
+		this.State = this.ParentActivity?.IsActive == true
+			? StateEnum.Finished
+			: StateEnum.Inactive;
 	}
 
 	private void OnParentActivityWillStart(string mode, Variant argument, GodotCancellationController controller)
@@ -143,7 +157,6 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	private void OnParentActivityStarted(string mode, Variant argument)
 	{
 		this.State = StateEnum.StandBy;
-		Engine.GetSceneTree().PhysicsFrame += this._StandByPhysicsProcess;
 		this._ParentActivityStarted(mode, argument);
 	}
 	private void OnParentActivityWillFinish(string reason, Variant details, GodotCancellationController controller)
@@ -151,8 +164,13 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	private void OnParentActivityFinished(string reason, Variant details)
 	{
 		if (this.IsActive)
+		{
+			// No need to update the state here because finishing this component will trigger _ActivityFinished(), which
+			// updates the state accordingly.
 			this.ForceFinish();
-		this.State = StateEnum.Inactive;
+		}
+		else
+			this.State = StateEnum.Inactive;
 		this._ParentActivityFinished(reason, details);
 	}
 
