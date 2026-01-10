@@ -100,15 +100,21 @@ public partial class ActivityComponent : Activity, IActivityComponent
 		this.ParentActivity?.EventWillFinish -= this.OnParentActivityWillFinish;
 		this.ParentActivity?.EventFinished -= this.OnParentActivityFinished;
 	}
-	public override void _PhysicsProcess(double delta)
+	protected override void _ActivityPhysicsProcess(double delta)
 	{
-		base._PhysicsProcess(delta);
+		base._ActivityPhysicsProcess(delta);
 		if (Engine.IsEditorHint())
 			return;
-		if (this.State == StateEnum.StandBy && this.TestStartConditions())
-			this.Start();
 		if (this.State == StateEnum.Started && this.TestFinishConditions())
 			this.Finish();
+	}
+
+	private void _StandByPhysicsProcess()
+	{
+		if (Engine.IsEditorHint() || this.State != StateEnum.StandBy)
+			return;
+		if (this.TestStartConditions())
+			this.Start();
 	}
 
 	protected override void _ActivityWillStart(string mode, Variant argument, GodotCancellationController controller)
@@ -121,13 +127,15 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	protected override void _ActivityStarted(string mode, Variant argument)
 	{
 		base._ActivityStarted(mode, argument);
+		Engine.GetSceneTree().DisconnectSafe(SceneTree.SignalName.PhysicsFrame, Callable.From(this._StandByPhysicsProcess));
 		this.State = StateEnum.Started;
 	}
 
 	protected override void _ActivityFinished(string reason, Variant details)
 	{
 		base._ActivityFinished(reason, details);
-		this.State = StateEnum.Finished;
+		if (this.State != StateEnum.Inactive)
+			this.State = StateEnum.Finished;
 	}
 
 	private void OnParentActivityWillStart(string mode, Variant argument, GodotCancellationController controller)
@@ -135,12 +143,15 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	private void OnParentActivityStarted(string mode, Variant argument)
 	{
 		this.State = StateEnum.StandBy;
+		Engine.GetSceneTree().PhysicsFrame += this._StandByPhysicsProcess;
 		this._ParentActivityStarted(mode, argument);
 	}
 	private void OnParentActivityWillFinish(string reason, Variant details, GodotCancellationController controller)
 		=> this._ParentActivityWillFinish(reason, details, controller);
 	private void OnParentActivityFinished(string reason, Variant details)
 	{
+		if (this.IsActive)
+			this.ForceFinish();
 		this.State = StateEnum.Inactive;
 		this._ParentActivityFinished(reason, details);
 	}

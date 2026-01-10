@@ -144,8 +144,7 @@ public partial class Activity : Node, IActivity
 			return;
 		if (!this.TestWillStart(mode, argument))
 			return;
-		this.ForceStart();
-		this.OnStarted(mode, argument);
+		this.ForceStart(mode, argument);
 	}
 
 	private bool TestWillStart(string mode, Variant argument)
@@ -158,8 +157,14 @@ public partial class Activity : Node, IActivity
 		return !controller.IsCancellationRequested;
 	}
 
-	private void ForceStart()
+	/// <summary>
+	/// Immediately starts the activity, if not already active, without emitting WillStart signals or calling
+	/// _ActivityWillStart.
+	/// </summary>
+	public void ForceStart(string mode = "", Variant argument = new Variant())
 	{
+		if (!this.IsActive)
+			this.CallDeferred(MethodName.OnStarted, mode, argument);
 		this.ProcessMode = this.ProcessModeWhenActive;
 		this.IsActive = true;
 		this.ActiveTimeSpan = TimeSpan.Zero;
@@ -179,8 +184,7 @@ public partial class Activity : Node, IActivity
 			return;
 		if (!this.TestWillFinish(reason, details))
 			return;
-		this.ForceFinish();
-		this.OnFinished(reason, details);
+		this.ForceFinish(reason, details);
 	}
 
 	private bool TestWillFinish(string reason, Variant details)
@@ -193,8 +197,14 @@ public partial class Activity : Node, IActivity
 		return !controller.IsCancellationRequested;
 	}
 
-	private void ForceFinish()
+	/// <summary>
+	/// Immediately finishes the activity, if currently active, without emitting WillFinish signals or calling
+	/// _ActivityWillFinish.
+	/// </summary>
+	public void ForceFinish(string reason = "", Variant details = new Variant())
 	{
+		if (this.IsActive)
+			this.CallDeferred(MethodName.OnFinished, reason, details);
 		this.ProcessMode = this.ProcessModeWhenInactive;
 		this.IsActive = false;
 		this.ActiveTimeSpan = TimeSpan.Zero;
