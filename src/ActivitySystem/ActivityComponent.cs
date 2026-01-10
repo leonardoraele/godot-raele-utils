@@ -21,7 +21,7 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	[ExportGroup("Use Start Strategy", "Start")]
 	[Export(PropertyHint.GroupEnable)] public bool StartStrategyEnabled = false;
 	[Export] public TimingStrategy? StartStrategy;
-	[ExportGroup("Use Duration Strategy", "Finish")]
+	[ExportGroup("Use Finish Strategy", "Finish")]
 	[Export(PropertyHint.GroupEnable)] public bool FinishStrategyEnabled = false;
 	[Export] public TimingStrategy? FinishStrategy;
 
