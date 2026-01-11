@@ -18,8 +18,10 @@ public partial class Activity : Node, IActivity
 		#region EXPORTS
 	//==================================================================================================================
 
-	[ExportGroup("Use State-Based Process Mode", "ProcessMode")]
-	[Export] public bool StateBasedProcessNodeEnabled = true;
+	[ExportGroup("Set Process Mode Per State", "ProcessMode")]
+	[Export(PropertyHint.GroupEnable)] public bool ProcessModeManagedEnabled
+		{ get; set { field = value; this.NotifyPropertyListChanged(); } }
+		= true;
 	[Export] public ProcessModeEnum ProcessModeWhenActive = ProcessModeEnum.Inherit;
 	[Export] public ProcessModeEnum ProcessModeWhenInactive = ProcessModeEnum.Disabled;
 
@@ -91,9 +93,13 @@ public partial class Activity : Node, IActivity
 		base._ValidateProperty(property);
 		if (
 			property["name"].AsString() == Node.PropertyName.ProcessMode.ToString()
-			&& this.StateBasedProcessNodeEnabled
+			&& this.ProcessModeManagedEnabled
 		)
-			property["usage"] = (long) PropertyUsageFlags.None;
+		{
+			this.ProcessMode = ProcessModeEnum.Inherit;
+			property["usage"] = (long) PropertyUsageFlags.Editor | (long) PropertyUsageFlags.ReadOnly;
+			property["comment"] = $"The {Node.PropertyName.ProcessMode} property is managed by the {nameof(Activity)} script.";
+		}
 	}
 
 	public override void _EnterTree()
@@ -101,15 +107,28 @@ public partial class Activity : Node, IActivity
 		base._EnterTree();
 		if (Engine.IsEditorHint())
 			return;
-		this.SetProcessInternal(true);
-		this.SetPhysicsProcessInternal(true);
+		Engine.GetSceneTree().ProcessFrame += this._ActivityProcessAlways;
+		Engine.GetSceneTree().PhysicsFrame += this._ActivityPhysicsProcessAlways;
+	}
+
+	public override void _ExitTree()
+	{
+		base._ExitTree();
+		if (Engine.IsEditorHint())
+			return;
+		Engine.GetSceneTree().ProcessFrame -= this._ActivityProcessAlways;
+		Engine.GetSceneTree().PhysicsFrame -= this._ActivityPhysicsProcessAlways;
 	}
 
 	public override void _Ready()
 	{
 		base._Ready();
 		if (Engine.IsEditorHint())
+		{
+			this.SetProcess(false);
+			this.SetPhysicsProcess(false);
 			return;
+		}
 		this.ForceFinish();
 	}
 
@@ -137,20 +156,12 @@ public partial class Activity : Node, IActivity
 		this._ActivityPhysicsProcess(delta);
 	}
 
-	public override void _Notification(int what)
-	{
-		if (what == Node.NotificationInternalProcess)
-			this._InternalProcess();
-		else if (what == Node.NotificationInternalPhysicsProcess)
-			this._InternalPhysicsProcess();
-	}
-
 	protected virtual void _ActivityWillStart(string mode, Variant argument, GodotCancellationController controller) { }
 	protected virtual void _ActivityStarted(string mode, Variant argument) { }
 	protected virtual void _ActivityProcess(double delta) { }
 	protected virtual void _ActivityPhysicsProcess(double delta) { }
-	protected virtual void _InternalProcess() {}
-	protected virtual void _InternalPhysicsProcess() {}
+	protected virtual void _ActivityProcessAlways() { }
+	protected virtual void _ActivityPhysicsProcessAlways() { }
 	protected virtual void _ActivityWillFinish(string reason, Variant details, GodotCancellationController controller) { }
 	protected virtual void _ActivityFinished(string reason, Variant details) { }
 
@@ -159,6 +170,23 @@ public partial class Activity : Node, IActivity
 	//==================================================================================================================
 		#region METHODS
 	//==================================================================================================================
+
+	/// <summary>
+	/// Returns the same as <see cref="CanProcess"/> would if this activity is activated.
+	/// </summary>
+	public bool TestActiveStateCanProcess()
+		=> (this.IsActive || !this.ProcessModeManagedEnabled)
+			? this.CanProcess()
+			: this.ProcessModeWhenActive switch
+			{
+				ProcessModeEnum.Always => true,
+				ProcessModeEnum.Pausable => !Engine.GetSceneTree().Paused,
+				ProcessModeEnum.WhenPaused => Engine.GetSceneTree().Paused,
+				ProcessModeEnum.Inherit => this.GetParent()?.CanProcess() == true,
+				_ => false
+			};
+
+	//------------------------------------------------------------------------------------------------------------------
 
 	public void Start(string mode = "", Variant argument = new Variant())
 	{
@@ -189,7 +217,7 @@ public partial class Activity : Node, IActivity
 			this.CallDeferred(MethodName.OnAfterStarted, mode, argument);
 		this.IsActive = true;
 		this.ActiveTimeSpan = TimeSpan.Zero;
-		if (this.StateBasedProcessNodeEnabled)
+		if (this.ProcessModeManagedEnabled)
 			this.ProcessMode = this.ProcessModeWhenActive;
 	}
 
@@ -230,7 +258,7 @@ public partial class Activity : Node, IActivity
 			this.CallDeferred(MethodName.OnAfterFinished, reason, details);
 		this.IsActive = false;
 		this.ActiveTimeSpan = TimeSpan.Zero;
-		if (this.StateBasedProcessNodeEnabled)
+		if (this.ProcessModeManagedEnabled)
 			this.ProcessMode = this.ProcessModeWhenInactive;
 	}
 

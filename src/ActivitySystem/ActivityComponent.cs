@@ -119,20 +119,13 @@ public partial class ActivityComponent : Activity, IActivityComponent
 			controller.Cancel();
 	}
 
-	protected override void _InternalPhysicsProcess()
+	protected override void _ActivityPhysicsProcessAlways()
 	{
-		base._InternalPhysicsProcess();
+		base._ActivityPhysicsProcessAlways();
 		if (
 			this.State == StateEnum.StandBy
 			// Prevents starting if the node wouldn't be able to process (e.g. starting while the game is paused)
-			&& this.ProcessModeWhenActive switch
-			{
-			 	ProcessModeEnum.Always => true,
-				ProcessModeEnum.Pausable => !Engine.GetSceneTree().Paused,
-				ProcessModeEnum.WhenPaused => Engine.GetSceneTree().Paused,
-				ProcessModeEnum.Inherit => this.GetParent()?.CanProcess() == true,
-				_ => false
-			}
+			&& this.TestActiveStateCanProcess()
 			&& this.TestStartConditions()
 		)
 			this.Start();
