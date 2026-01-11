@@ -57,6 +57,10 @@ public static class VariantExtensionMethods
 				_ => self
 			};
 
+		public Variant.Type AsVariantType() => (Variant.Type) self.AsInt64();
+		public PropertyHint AsPropertyHint() => (PropertyHint) self.AsInt64();
+		public PropertyUsageFlags AsPropertyUsageFlags() => (PropertyUsageFlags) self.AsInt64();
+
 		public static Variant.Type Typeof<[MustBeVariant] T>()
 			=> Typeof(typeof(T));
 		public static Variant.Type Typeof(Type type)
@@ -193,6 +197,9 @@ public static class VariantExtensionMethods
 
 	extension (Variant.Type self)
 	{
+		public long AsInt64()
+			=> (long) self;
+
 		public bool IsNumericType()
 			=> self == Variant.Type.Int || self == Variant.Type.Float;
 
@@ -299,4 +306,7 @@ public static class VariantExtensionMethods
 				_ => Variant.NULL,
 			};
 	}
+
+	extension (PropertyHint self) { public long AsInt64() => (long) self; }
+	extension (PropertyUsageFlags self) { public long AsInt64() => (long) self; }
 }
