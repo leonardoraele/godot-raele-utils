@@ -18,7 +18,7 @@ public static class ProjectSettingsExtensionMethods
 		}
 		public static void DefineSetting(GodotPropertyInfo property)
 		{
-			Variant defaultValue = property.HasDefaultValue ? property.DefaultValue : property.Type.GetEmpty();
+			Variant defaultValue = property.HasDefaultValue ? property.DefaultValue : Variant.GetEmpty(property.Type);
 			if (!ProjectSettings.HasSetting(property.Name))
 				ProjectSettings.SetSetting(property.Name, defaultValue);
 			ProjectSettings.SetInitialValue(property.Name, defaultValue);

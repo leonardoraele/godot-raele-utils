@@ -107,8 +107,8 @@ public partial class Activity : Node, IActivity
 		base._EnterTree();
 		if (Engine.IsEditorHint())
 			return;
-		Engine.GetSceneTree().ProcessFrame += this._ActivityProcessAlways;
-		Engine.GetSceneTree().PhysicsFrame += this._ActivityPhysicsProcessAlways;
+		this.GetTree().ProcessFrame += this._ActivityProcessAlways;
+		this.GetTree().PhysicsFrame += this._ActivityPhysicsProcessAlways;
 	}
 
 	public override void _ExitTree()
@@ -116,8 +116,8 @@ public partial class Activity : Node, IActivity
 		base._ExitTree();
 		if (Engine.IsEditorHint())
 			return;
-		Engine.GetSceneTree().ProcessFrame -= this._ActivityProcessAlways;
-		Engine.GetSceneTree().PhysicsFrame -= this._ActivityPhysicsProcessAlways;
+		this.GetTree().ProcessFrame -= this._ActivityProcessAlways;
+		this.GetTree().PhysicsFrame -= this._ActivityPhysicsProcessAlways;
 	}
 
 	public override void _Ready()
@@ -180,8 +180,8 @@ public partial class Activity : Node, IActivity
 			: this.ProcessModeWhenActive switch
 			{
 				ProcessModeEnum.Always => true,
-				ProcessModeEnum.Pausable => !Engine.GetSceneTree().Paused,
-				ProcessModeEnum.WhenPaused => Engine.GetSceneTree().Paused,
+				ProcessModeEnum.Pausable => !this.GetTree().Paused,
+				ProcessModeEnum.WhenPaused => this.GetTree().Paused,
 				ProcessModeEnum.Inherit => this.GetParent()?.CanProcess() == true,
 				_ => false
 			};

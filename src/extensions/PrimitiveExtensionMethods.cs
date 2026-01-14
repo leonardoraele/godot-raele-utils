@@ -6,18 +6,19 @@ public static class PrimitiveExtensionMethods
 {
 	extension<T>(T self) where T : struct, IComparable<T>
 	{
-		public T Clamp(T min, T max)
+		public T Clamped(T min, T max)
 			=> self.CompareTo(min) < 0 ? min
 				: self.CompareTo(max) > 0 ? max
 				: self;
-		public bool IsBetween(T min, T max, bool inclusive = true)
-			=> inclusive
-				? self.CompareTo(min) >= 0 && self.CompareTo(max) <= 0
-				: self.CompareTo(min) > 0 && self.CompareTo(max) < 0;
+		public bool IsBetween(T min, T max, bool minInclusive = true, bool maxInclusive = false)
+			=> (minInclusive ? self.CompareTo(min) >= 0 : self.CompareTo(min) > 0)
+				&& (maxInclusive ? self.CompareTo(max) <= 0 : self.CompareTo(max) < 0);
 	}
 
 	extension(string str)
 	{
+		public bool IsNotWhiteSpace() => !string.IsNullOrWhiteSpace(str);
+
 		public string TrimEnd(string suffix)
 		{
 			string current = str;

@@ -43,6 +43,14 @@ public static class GodotObjectExtensionMethods
 		// 	cancellationToken.Register(() => self.Disconnect(signal, callable));
 		// }
 
+		public void CallSafe(StringName methodName, params Variant[] args)
+		{
+			try
+				{ self.Call(methodName, args); }
+			catch (Exception e)
+				{ GD.PushError(e); }
+		}
+
 		public void CallDebouncedRealTime(TimeSpan delay, StringName methodName, params Variant[] args)
 			=> self._CallDebounced(methodName, delay.TotalSeconds, ignoreTimeScale: true, args);
 		public void CallDebounced(TimeSpan delay, StringName methodName, params Variant[] args)

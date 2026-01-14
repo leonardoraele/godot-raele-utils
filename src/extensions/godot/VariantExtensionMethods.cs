@@ -12,6 +12,17 @@ public static class VariantExtensionMethods
 		public T? AsGodotObject<T>() where T : GodotObject
 			=> self.AsGodotObject() as T;
 
+		public string ToJsonString() => Json.Stringify(self);
+
+		public bool IsEmpty()
+			=> self.VariantType == Variant.Type.Dictionary ? self.AsGodotDictionary().Count == 0
+				: self.VariantType.IsArrayType() ? self.AsGodotArray().Count == 0
+				: self.Equals(Variant.GetEmpty(self.VariantType));
+
+		public Variant.Type AsVariantType() => (Variant.Type) self.AsInt64();
+		public PropertyHint AsPropertyHint() => (PropertyHint) self.AsInt64();
+		public PropertyUsageFlags AsPropertyUsageFlags() => (PropertyUsageFlags) self.AsInt64();
+
 		public Variant As(Variant.Type type)
 			=> type switch
 			{
@@ -56,10 +67,6 @@ public static class VariantExtensionMethods
 				Variant.Type.PackedVector4Array => self.AsVector4Array(),
 				_ => self
 			};
-
-		public Variant.Type AsVariantType() => (Variant.Type) self.AsInt64();
-		public PropertyHint AsPropertyHint() => (PropertyHint) self.AsInt64();
-		public PropertyUsageFlags AsPropertyUsageFlags() => (PropertyUsageFlags) self.AsInt64();
 
 		public static Variant.Type Typeof<[MustBeVariant] T>()
 			=> Typeof(typeof(T));
@@ -118,156 +125,58 @@ public static class VariantExtensionMethods
 			: type.IsValueType && typeof(Enum).IsAssignableFrom(type) ? Variant.Type.Int
 			: Variant.Type.Nil;
 
-		// public Variant Validated(Variant.Type type, PropertyHint hint, string hintString)
-		// {
-		// 	Variant input = self.As(type);
-		// 	switch (hint)
-		// 	{
-		// 		case PropertyHint.Range: {
-		// 			if (type != Variant.Type.Float)
-		// 			{
-		// 				return input;
-		// 			}
-		// 			string[] parts = hintString.Split(",").Select(str => str.Trim()).ToArray();
-		// 			float rangeMin = parts.Contains("or_less")
-		// 				? float.NegativeInfinity
-		// 				: parts.ElementAtOrDefault(0) is string minStr && !string.IsNullOrWhiteSpace(minStr)
-		// 					? float.Parse(minStr)
-		// 					: float.NegativeInfinity;
-		// 			float rangeMax = parts.Contains("or_greater")
-		// 				? float.PositiveInfinity
-		// 				: parts.ElementAtOrDefault(1) is string maxStr && !string.IsNullOrWhiteSpace(maxStr)
-		// 					? float.Parse(maxStr)
-		// 					: float.PositiveInfinity;
-		// 			float clamped = Math.Clamp(input.AsSingle(), rangeMin, rangeMax);
-		// 			float step = parts.ElementAtOrDefault(2) is string stepStr && !string.IsNullOrWhiteSpace(stepStr)
-		// 				? float.Parse(stepStr)
-		// 				: 0f;
-		// 			float rounded = Mathf.IsZeroApprox(step) ? clamped : Mathf.Round(clamped / step) * step;
-		// 			return rounded;
-		// 		}
-		// 		case PropertyHint.Enum:
-		// 			switch (type)
-		// 			{
-		// 				case Variant.Type.Int: {
-		// 					long[] options = hintString.Split(",")
-		// 						.Select(str => long.Parse(str.Split(":").Last()))
-		// 						.ToArray();
-		// 					return options.Contains(input.AsInt64()) ? input : default(long);
-		// 				}
-		// 				case Variant.Type.String: {
-		// 					string[] options = hintString.Split(",").Select(str => str.Split(":").First().Trim()).ToArray();
-		// 					return options.Contains(input.AsString()) ? input : "";
-		// 				}
-		// 				default:
-		// 					return input;
-		// 			}
-		// 		case PropertyHint.ColorNoAlpha:
-		// 			return input.AsColor() with { A = 1f };
-		// 		case PropertyHint.TypeString:
-		// 			return input; // TODO
-		// 		case PropertyHint.ArrayType:
-		// 			return input; // TODO
-		// 		case PropertyHint.DictionaryType:
-		// 			return input; // TODO
-		// 		case PropertyHint.LocaleId:
-		// 			return input; // TODO
-		// 		case PropertyHint.LocalizableString:
-		// 			return input; // TODO
-		// 		case PropertyHint.NodeType:
-		// 			if (type != Variant.Type.Object)
-		// 				return input;
-		// 			return hintString.Split(",").Select(s => s.Trim()).Contains(input.AsGodotObject().GetType().Name)
-		// 				? input
-		// 				: new Variant();
-		// 		case PropertyHint.InputName:
-		// 			if (type != Variant.Type.String)
-		// 				return input;
-		// 			return InputMap.GetActions().Contains(input.AsString()) ? input : "";
-		// 		default:
-		// 			return input;
-		// 	};
-		// }
-	}
-
-	extension <[MustBeVariant] T>(T self)
-	{
-		public Variant ToVariant() => Variant.From(self);
-	}
-
-	extension (Variant.Type self)
-	{
-		public long AsInt64()
-			=> (long) self;
-
-		public bool IsNumericType()
-			=> self == Variant.Type.Int || self == Variant.Type.Float;
-
-		public bool IsArrayType()
-			=> self == Variant.Type.Array
-			|| self == Variant.Type.PackedByteArray
-			|| self == Variant.Type.PackedInt32Array
-			|| self == Variant.Type.PackedInt64Array
-			|| self == Variant.Type.PackedFloat32Array
-			|| self == Variant.Type.PackedFloat64Array
-			|| self == Variant.Type.PackedStringArray
-			|| self == Variant.Type.PackedColorArray
-			|| self == Variant.Type.PackedVector2Array
-			|| self == Variant.Type.PackedVector3Array
-			|| self == Variant.Type.PackedVector4Array;
-
-		/// <summary>
-		/// Algorithm replicated from https://github.com/godotengine/godot/blob/master/core/variant/variant.cpp
-		/// </summary>
-		public bool IsConvertibleTo(Variant.Type other, bool strict = false)
-			=> self == other
-			|| other == Variant.Type.Nil
-			|| self == Variant.Type.Nil && other == Variant.Type.Object
-			|| other switch
+		public static Variant GetDefault(Variant.Type type)
+			=> type switch
 			{
-				Variant.Type.Bool => strict
-					? self.IsAnyOf([Variant.Type.Int, Variant.Type.Float])
-					: self.IsAnyOf([Variant.Type.Int, Variant.Type.Float, Variant.Type.String]),
-				Variant.Type.Int => strict
-					? self.IsAnyOf([Variant.Type.Bool, Variant.Type.Float])
-					: self.IsAnyOf([Variant.Type.Bool, Variant.Type.Float, Variant.Type.String]),
-				Variant.Type.Float => strict
-					? self.IsAnyOf([Variant.Type.Bool, Variant.Type.Int])
-					: self.IsAnyOf([Variant.Type.Bool, Variant.Type.Int, Variant.Type.String]),
-				Variant.Type.String => strict
-					? self.IsAnyOf([Variant.Type.NodePath, Variant.Type.StringName])
-					: self != Variant.Type.Object,
-				Variant.Type.Vector2 => self == Variant.Type.Vector2I,
-				Variant.Type.Vector2I => self == Variant.Type.Vector2,
-				Variant.Type.Rect2 => self == Variant.Type.Rect2I,
-				Variant.Type.Rect2I => self == Variant.Type.Rect2,
-				Variant.Type.Transform2D => self == Variant.Type.Transform3D,
-				Variant.Type.Vector3 => self == Variant.Type.Vector3I,
-				Variant.Type.Vector3I => self == Variant.Type.Vector3,
-				Variant.Type.Vector4 => self == Variant.Type.Vector4I,
-				Variant.Type.Vector4I => self == Variant.Type.Vector4,
-				Variant.Type.Quaternion => self == Variant.Type.Basis,
-				Variant.Type.Basis => self == Variant.Type.Quaternion,
-				Variant.Type.Transform3D => self.IsAnyOf([Variant.Type.Transform2D, Variant.Type.Quaternion, Variant.Type.Basis, Variant.Type.Projection]),
-				Variant.Type.Projection => self == Variant.Type.Transform3D,
-				Variant.Type.Color => self.IsAnyOf([Variant.Type.String, Variant.Type.Int]),
-				Variant.Type.Rid => self == Variant.Type.Object,
-				Variant.Type.StringName => self == Variant.Type.String,
-				Variant.Type.NodePath => self == Variant.Type.String,
-				Variant.Type.Array => self.IsArrayType(),
-				_ => other.IsArrayType() && self == Variant.Type.Array,
+				Variant.Type.Nil => Variant.NULL,
+				Variant.Type.Bool => default(bool),
+				Variant.Type.Int => default(int),
+				Variant.Type.Float => default(float),
+				Variant.Type.String => Variant.NULL,
+				Variant.Type.Vector2 => default(Vector2),
+				Variant.Type.Vector2I => default(Vector2I),
+				Variant.Type.Rect2 => default(Rect2),
+				Variant.Type.Rect2I => default(Rect2I),
+				Variant.Type.Vector3 => default(Vector3),
+				Variant.Type.Vector3I => default(Vector3I),
+				Variant.Type.Transform2D => default(Transform2D),
+				Variant.Type.Vector4 => default(Vector4),
+				Variant.Type.Vector4I => default(Vector4I),
+				Variant.Type.Plane => default(Plane),
+				Variant.Type.Quaternion => default(Quaternion),
+				Variant.Type.Aabb => default(Aabb),
+				Variant.Type.Basis => default(Basis),
+				Variant.Type.Transform3D => default(Transform3D),
+				Variant.Type.Projection => default(Projection),
+				Variant.Type.Color => default(Color),
+				Variant.Type.StringName => Variant.NULL,
+				Variant.Type.NodePath => Variant.NULL,
+				Variant.Type.Rid => default(Rid),
+				Variant.Type.Object => Variant.NULL,
+				Variant.Type.Callable => default(Callable),
+				Variant.Type.Signal => default(Signal),
+				Variant.Type.Dictionary => Variant.NULL,
+				Variant.Type.Array => Variant.NULL,
+				Variant.Type.PackedByteArray => Variant.NULL,
+				Variant.Type.PackedInt32Array => Variant.NULL,
+				Variant.Type.PackedInt64Array => Variant.NULL,
+				Variant.Type.PackedFloat32Array => Variant.NULL,
+				Variant.Type.PackedFloat64Array => Variant.NULL,
+				Variant.Type.PackedStringArray => Variant.NULL,
+				Variant.Type.PackedVector2Array => Variant.NULL,
+				Variant.Type.PackedVector3Array => Variant.NULL,
+				Variant.Type.PackedColorArray => Variant.NULL,
+				Variant.Type.PackedVector4Array => Variant.NULL,
+				_ => Variant.NULL
 			};
 
-		private bool IsAnyOf(Variant.Type[] types)
-			=> types.Contains(self);
-
-		public Variant GetEmpty()
-			=> self switch
+		public static Variant GetEmpty(Variant.Type type)
+			=> type switch
 			{
-				Variant.Type.Nil => new Variant(),
-				Variant.Type.Bool => default(bool),
-				Variant.Type.Int => default(long),
-				Variant.Type.Float => default(double),
+				Variant.Type.Nil => Variant.NULL,
+				Variant.Type.Bool => false,
+				Variant.Type.Int => 0L,
+				Variant.Type.Float => 0d,
 				Variant.Type.String => "",
 				Variant.Type.Vector2 => default(Vector2),
 				Variant.Type.Vector2I => default(Vector2I),
@@ -285,11 +194,11 @@ public static class VariantExtensionMethods
 				Variant.Type.Transform3D => default(Transform3D),
 				Variant.Type.Projection => default(Projection),
 				Variant.Type.Color => default(Color),
-				Variant.Type.StringName => "",
-				Variant.Type.NodePath => "",
+				Variant.Type.StringName => new StringName(""),
+				Variant.Type.NodePath => new NodePath(""),
 				Variant.Type.Rid => default(Rid),
 				Variant.Type.Object => Variant.NULL,
-				Variant.Type.Callable => Callable.NOOP,
+				Variant.Type.Callable => default(Callable),
 				Variant.Type.Signal => default(Signal),
 				Variant.Type.Dictionary => new Godot.Collections.Dictionary(),
 				Variant.Type.Array => new Godot.Collections.Array(),
@@ -303,10 +212,81 @@ public static class VariantExtensionMethods
 				Variant.Type.PackedVector3Array => new Vector3[0],
 				Variant.Type.PackedColorArray => new Color[0],
 				Variant.Type.PackedVector4Array => new Vector4[0],
-				_ => Variant.NULL,
+				_ => Variant.NULL
 			};
 	}
 
-	extension (PropertyHint self) { public long AsInt64() => (long) self; }
-	extension (PropertyUsageFlags self) { public long AsInt64() => (long) self; }
+	extension <[MustBeVariant] T>(T self)
+	{
+		public Variant ToVariant() => Variant.From(self);
+		public string ToJsonString() => self.ToVariant().ToJsonString();
+	}
+
+	extension (Variant.Type self)
+	{
+		public bool IsNumericType()
+			=> self == Variant.Type.Int || self == Variant.Type.Float;
+
+		public bool IsArrayType()
+			=> self == Variant.Type.Array
+			|| self == Variant.Type.PackedByteArray
+			|| self == Variant.Type.PackedInt32Array
+			|| self == Variant.Type.PackedInt64Array
+			|| self == Variant.Type.PackedFloat32Array
+			|| self == Variant.Type.PackedFloat64Array
+			|| self == Variant.Type.PackedStringArray
+			|| self == Variant.Type.PackedColorArray
+			|| self == Variant.Type.PackedVector2Array
+			|| self == Variant.Type.PackedVector3Array
+			|| self == Variant.Type.PackedVector4Array;
+
+		public bool IsNullableType()
+			=> self.IsConvertibleTo(Variant.Type.Nil);
+
+		/// <summary>
+		/// Algorithm replicated from https://github.com/godotengine/godot/blob/master/core/variant/variant.cpp#L192
+		/// </summary>
+		public bool IsConvertibleTo(Variant.Type other, bool strict = false)
+			=> self == other
+			|| other == Variant.Type.Nil
+			|| self == Variant.Type.Nil
+				? other == Variant.Type.Object
+				: other switch
+				{
+					Variant.Type.Bool => strict
+						? self.IsAnyOf([Variant.Type.Int, Variant.Type.Float])
+						: self.IsAnyOf([Variant.Type.Int, Variant.Type.Float, Variant.Type.String]),
+					Variant.Type.Int => strict
+						? self.IsAnyOf([Variant.Type.Bool, Variant.Type.Float])
+						: self.IsAnyOf([Variant.Type.Bool, Variant.Type.Float, Variant.Type.String]),
+					Variant.Type.Float => strict
+						? self.IsAnyOf([Variant.Type.Bool, Variant.Type.Int])
+						: self.IsAnyOf([Variant.Type.Bool, Variant.Type.Int, Variant.Type.String]),
+					Variant.Type.String => strict
+						? self.IsAnyOf([Variant.Type.NodePath, Variant.Type.StringName])
+						: self != Variant.Type.Object,
+					Variant.Type.Vector2 => self == Variant.Type.Vector2I,
+					Variant.Type.Vector2I => self == Variant.Type.Vector2,
+					Variant.Type.Rect2 => self == Variant.Type.Rect2I,
+					Variant.Type.Rect2I => self == Variant.Type.Rect2,
+					Variant.Type.Transform2D => self == Variant.Type.Transform3D,
+					Variant.Type.Vector3 => self == Variant.Type.Vector3I,
+					Variant.Type.Vector3I => self == Variant.Type.Vector3,
+					Variant.Type.Vector4 => self == Variant.Type.Vector4I,
+					Variant.Type.Vector4I => self == Variant.Type.Vector4,
+					Variant.Type.Quaternion => self == Variant.Type.Basis,
+					Variant.Type.Basis => self == Variant.Type.Quaternion,
+					Variant.Type.Transform3D => self.IsAnyOf([Variant.Type.Transform2D, Variant.Type.Quaternion, Variant.Type.Basis, Variant.Type.Projection]),
+					Variant.Type.Projection => self == Variant.Type.Transform3D,
+					Variant.Type.Color => self.IsAnyOf([Variant.Type.String, Variant.Type.Int]),
+					Variant.Type.Rid => self == Variant.Type.Object,
+					Variant.Type.StringName => self == Variant.Type.String,
+					Variant.Type.NodePath => self == Variant.Type.String,
+					Variant.Type.Array => self.IsArrayType(),
+					_ => other.IsArrayType() && self == Variant.Type.Array,
+				};
+
+		private bool IsAnyOf(Variant.Type[] types)
+			=> types.Contains(self);
+	}
 }
