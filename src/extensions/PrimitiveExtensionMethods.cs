@@ -19,18 +19,18 @@ public static class PrimitiveExtensionMethods
 	{
 		public bool IsWhiteSpace() => string.IsNullOrWhiteSpace(str);
 
-		public string TrimEnd(string suffix)
-		{
-			string current = str;
-			while (current.EndsWith(suffix, StringComparison.Ordinal))
-				current = current.Substring(0, current.Length - suffix.Length);
-			return current;
-		}
-		public string TrimStart(string prefix)
+		public string TrimStartString(string prefix)
 		{
 			string current = str;
 			while (current.StartsWith(prefix, StringComparison.Ordinal))
 				current = current.Substring(prefix.Length);
+			return current;
+		}
+		public string TrimEndString(string suffix)
+		{
+			string current = str;
+			while (current.EndsWith(suffix, StringComparison.Ordinal))
+				current = current.Substring(0, current.Length - suffix.Length);
 			return current;
 		}
 
