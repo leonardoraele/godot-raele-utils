@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using Godot;
 using static Godot.GodotObject;
@@ -126,5 +127,10 @@ public static class GodotObjectExtensionMethods
 				self.Call(methodName, args);
 			}
 		}
+
+		public string ToIdentityString()
+			=> self is Node node ? $"\"{node.GetPath()}\""
+				: self is Resource res ? $"{res.GetType().Name} \"{(!res.ResourceName.IsWhiteSpace() ? res.ResourceName : Path.GetFileName(res.ResourcePath))}\" {{{res.GetRid()}}}"
+				: self.GetType().Name;
 	}
 }

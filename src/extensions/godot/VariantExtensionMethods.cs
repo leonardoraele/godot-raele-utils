@@ -1,5 +1,7 @@
 using System;
+using System.Runtime.CompilerServices;
 using Godot;
+using Godot.NativeInterop;
 
 namespace Raele.GodotUtils.Extensions;
 
@@ -12,7 +14,8 @@ public static class VariantExtensionMethods
 		public T? AsGodotObject<T>() where T : GodotObject
 			=> self.AsGodotObject() as T;
 
-		public string ToJsonString() => Json.Stringify(self);
+		public string ToJsonString(string indent = "", bool sortKeys = true, bool fullPrecision = false)
+			=> Json.Stringify(self, indent, sortKeys, fullPrecision);
 
 		public bool IsEmpty()
 			=> self.VariantType == Variant.Type.Dictionary ? self.AsGodotDictionary().Count == 0
@@ -218,8 +221,85 @@ public static class VariantExtensionMethods
 
 	extension <[MustBeVariant] T>(T self)
 	{
-		public Variant ToVariant() => Variant.From(self);
-		public string ToJsonString() => self.ToVariant().ToJsonString();
+		public bool IsVariantCompatible()
+			=> typeof(T) == typeof(bool)
+				|| typeof(T) == typeof(char)
+				|| typeof(T) == typeof(sbyte)
+				|| typeof(T) == typeof(short)
+				|| typeof(T) == typeof(int)
+				|| typeof(T) == typeof(long)
+				|| typeof(T) == typeof(byte)
+				|| typeof(T) == typeof(ushort)
+				|| typeof(T) == typeof(uint)
+				|| typeof(T) == typeof(ulong)
+				|| typeof(T) == typeof(float)
+				|| typeof(T) == typeof(double)
+				|| typeof(T) == typeof(Vector2)
+				|| typeof(T) == typeof(Vector2I)
+				|| typeof(T) == typeof(Rect2)
+				|| typeof(T) == typeof(Rect2I)
+				|| typeof(T) == typeof(Transform2D)
+				|| typeof(T) == typeof(Vector3)
+				|| typeof(T) == typeof(Vector3I)
+				|| typeof(T) == typeof(Basis)
+				|| typeof(T) == typeof(Quaternion)
+				|| typeof(T) == typeof(Transform3D)
+				|| typeof(T) == typeof(Projection)
+				|| typeof(T) == typeof(Vector4)
+				|| typeof(T) == typeof(Vector4I)
+				|| typeof(T) == typeof(Aabb)
+				|| typeof(T) == typeof(Color)
+				|| typeof(T) == typeof(Plane)
+				|| typeof(T) == typeof(Callable)
+				|| typeof(T) == typeof(Signal)
+				|| typeof(T) == typeof(string)
+				|| typeof(T) == typeof(byte[])
+				|| typeof(T) == typeof(int[])
+				|| typeof(T) == typeof(long[])
+				|| typeof(T) == typeof(float[])
+				|| typeof(T) == typeof(double[])
+				|| typeof(T) == typeof(string[])
+				|| typeof(T) == typeof(Vector2[])
+				|| typeof(T) == typeof(Vector3[])
+				|| typeof(T) == typeof(Vector4[])
+				|| typeof(T) == typeof(Color[])
+				|| typeof(T) == typeof(StringName[])
+				|| typeof(T) == typeof(NodePath[])
+				|| typeof(T) == typeof(Rid[])
+				|| typeof(T) == typeof(StringName)
+				|| typeof(T) == typeof(NodePath)
+				|| typeof(T) == typeof(Rid)
+				|| typeof(T) == typeof(Godot.Collections.Dictionary)
+				|| typeof(T) == typeof(Godot.Collections.Array)
+				|| typeof(T) == typeof(Variant)
+				|| typeof(GodotObject).IsAssignableFrom(typeof(T))
+				|| typeof(T).IsValueType
+					&& typeof(Enum).IsAssignableFrom(typeof(T))
+					&& Unsafe.SizeOf<T>() is 1 or 2 or 4 or 8;
+		public Variant ToVariant()
+		{
+			try
+			{
+				return Variant.From(self);
+			}
+			catch(Exception e)
+			{
+				GD.PushError(e);
+				return Variant.GetDefault(Variant.Typeof<T>());
+			}
+		}
+		public string ToJsonString(string indent = "", bool sortKeys = true, bool fullPrecision = false)
+		{
+			try
+			{
+				return Variant.From(self).ToJsonString(indent, sortKeys, fullPrecision);
+			}
+			catch(Exception e)
+			{
+				GD.PushError(e);
+				return e.ToString().ToJsonString();
+			}
+		}
 	}
 
 	extension (Variant.Type self)

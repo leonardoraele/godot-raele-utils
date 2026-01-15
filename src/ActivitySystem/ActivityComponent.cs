@@ -109,7 +109,7 @@ public partial class ActivityComponent : Activity, IActivityComponent
 		if (Engine.IsEditorHint())
 			return;
 		if (this.State == StateEnum.Started && this.TestFinishConditions())
-			this.Finish($"{nameof(ActivityComponent)}.{nameof(this.FinishStrategy)}({this.FinishStrategy}).ConditionSatisfied");
+			this.Finish($"{nameof(ActivityComponent)}.{nameof(this.FinishStrategy)}({this.FinishStrategy?.GetType().Name ?? "null"}).ConditionSatisfied");
 	}
 
 	protected override void _ActivityWillStart(string mode, Variant argument, GodotCancellationController controller)

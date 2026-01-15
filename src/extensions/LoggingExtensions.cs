@@ -1,45 +1,36 @@
 using System;
+using System.Linq;
 using Godot;
 
 namespace Raele.GodotUtils.Extensions;
 
 public static class LoggingExtensions
 {
-	// public static void DebugLog(this Node subject, params object[] items)
-	// 	=> GD.PrintRich(
-	// 		string.Join(" ", items.SkipLast(1)),
-	// 		items.Length > 1
-	// 			? "\n\t " + items.Last()
-	// 			: "",
-	// 		"\n\t ", GetSourceString(subject)
-	// 	);
-	public static void DebugLog(this Node subject, string message)
-		=> GD.PrintRich(
-			message,
-			"\n\t ", GetSourceString(subject)
-		);
-	public static void DebugLog(this Node subject, string message, object detailsObj)
-		=> GD.PrintRich(
-			message,
-			"\n\t ", detailsObj,
-			"\n\t ", GetSourceString(subject)
-		);
-	public static void DebugLog(this Node subject, string message, Variant details)
-		=> GD.PrintRich(
-			message,
-			"\n\t ", Json.Stringify(Variant.From(details)),
-			"\n\t ", GetSourceString(subject)
-		);
+	extension(GodotObject self)
+	{
+		// TODO Use GD.Print instead when `OS.IsDebugBuild() == false`
+		public void DebugLog(string message, params object[] details)
+			=> GD.PrintRich([
+				$"[bgcolor={GetNextColorCode()}]",
+				// $"[color={Colors.LightGray.ToHtml()}]",
+				message,
+				..details.Select(@object => $"\n ├ {@object}"),
+				$"\n └ {GetFrameString()} {GetTimeString()} @ {self.ToIdentityString()}"
+				// $"\n\t[hint={detailsObj.ToString().ToJsonString()}]{message}[/hint]"
+			]);
+	}
 
-	private static string GetSourceString(Node subject)
-		=> string.Join(
-				" ",
-				[
-					DateTime.Now.ToString("HH:mm:ss.fff"),
-					$"#{Engine.GetPhysicsFrames():N0}",
-					"by",
-					$"\"{subject.GetPath().ToString().TrimEnd(subject.Name)}{subject.Name.ToString().BBCColor(ColorName.Gray)}\""
-				]
-			)
-			.BBCColor(ColorName.DarkGray);
+	private static readonly Color[] COLORS = Enumerable.Range(0, 8).Select(i => Color.FromHsv(i / 8f, 1f, .2f)).ToArray();
+	private static int colorIndex = 0;
+	private static string GetNextColorCode() => COLORS[colorIndex = (colorIndex + 3) % COLORS.Length].ToHtml();
+
+	// private static IEnumerable<string> ToChunks(string message, int size = 80)
+	// 	// => message.Chunk(80).Select(chars => new string(chars)) // TODO Bechmark performance of this vs current implementation
+	// 	=> Enumerable.Range(0, message.Length / size + 1)
+	// 		.Select(i => message.Substring(i * size, Math.Min(size, message.Length - i * size)));
+
+	private static string GetFrameString()
+		=> $"#{Engine.GetPhysicsFrames():N0}";
+	private static string GetTimeString()
+		=> DateTime.Now.ToString("HH:mm:ss.fff");
 }

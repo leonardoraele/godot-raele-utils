@@ -17,7 +17,7 @@ public static class PrimitiveExtensionMethods
 
 	extension(string str)
 	{
-		public bool IsNotWhiteSpace() => !string.IsNullOrWhiteSpace(str);
+		public bool IsWhiteSpace() => string.IsNullOrWhiteSpace(str);
 
 		public string TrimEnd(string suffix)
 		{
