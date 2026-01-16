@@ -25,6 +25,7 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	[Export(PropertyHint.GroupEnable)] public bool FinishStrategyEnabled = false;
 	[Export] public TimingStrategy? FinishStrategy;
 
+	// TODO
 	// [ExportGroup("Options")]
 	// [Export] public bool KeepActiveAfterParentFinishes = false;
 

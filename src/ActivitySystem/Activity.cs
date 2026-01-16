@@ -196,13 +196,13 @@ public partial class Activity : Node, IActivity
 
 	//------------------------------------------------------------------------------------------------------------------
 
-	public void Start(string mode = "", Variant argument = new Variant())
+	public void Start(string mode = "", Variant payload = new Variant())
 	{
 		if (this.IsActive)
 			return;
-		if (!this.TestWillStart(mode, argument))
+		if (!this.TestWillStart(mode, payload))
 			return;
-		this.ForceStart(mode, argument);
+		this.ForceStart(mode, payload);
 	}
 
 	private bool TestWillStart(string mode, Variant argument)
