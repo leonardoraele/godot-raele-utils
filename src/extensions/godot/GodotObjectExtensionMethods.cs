@@ -1,8 +1,6 @@
 using System;
 using System.IO;
-using System.Linq;
 using Godot;
-using static Godot.GodotObject;
 
 namespace Raele.GodotUtils.Extensions;
 

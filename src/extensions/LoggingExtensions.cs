@@ -12,8 +12,8 @@ public static class LoggingExtensions
 		public void DebugLog(string message, params object[] details)
 			=> GD.PrintRich([
 				$"[bgcolor={GetNextColorCode()}]",
-				// $"[color={Colors.LightGray.ToHtml()}]",
 				message,
+				$"[color=dim_gray]",
 				..details.Select(@object => $"\n ├ {@object}"),
 				$"\n └ {GetFrameString()} {GetTimeString()} @ {self.ToIdentityString()}"
 				// $"\n\t[hint={detailsObj.ToString().ToJsonString()}]{message}[/hint]"
