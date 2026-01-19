@@ -20,14 +20,14 @@ public static class VariantExtensionMethods
 		public bool IsEmpty()
 			=> self.VariantType == Variant.Type.Dictionary ? self.AsGodotDictionary().Count == 0
 				: self.VariantType.IsArrayType() ? self.AsGodotArray().Count == 0
-				: self.Equals(Variant.GetEmpty(self.VariantType));
+				: self.Equals(Variant.GetDefault(self.VariantType));
 
 		public Variant.Type AsVariantType() => (Variant.Type) self.AsInt64();
 		public PropertyHint AsPropertyHint() => (PropertyHint) self.AsInt64();
 		public PropertyUsageFlags AsPropertyUsageFlags() => (PropertyUsageFlags) self.AsInt64();
 
 		public Variant As(Variant.Type type)
-			=> type switch
+			=> self.VariantType == type ? self : type switch
 			{
 				Variant.Type.Nil => new Variant(),
 				Variant.Type.Bool => self.AsBool(),
@@ -135,51 +135,6 @@ public static class VariantExtensionMethods
 				Variant.Type.Bool => default(bool),
 				Variant.Type.Int => default(int),
 				Variant.Type.Float => default(float),
-				Variant.Type.String => Variant.NULL,
-				Variant.Type.Vector2 => default(Vector2),
-				Variant.Type.Vector2I => default(Vector2I),
-				Variant.Type.Rect2 => default(Rect2),
-				Variant.Type.Rect2I => default(Rect2I),
-				Variant.Type.Vector3 => default(Vector3),
-				Variant.Type.Vector3I => default(Vector3I),
-				Variant.Type.Transform2D => default(Transform2D),
-				Variant.Type.Vector4 => default(Vector4),
-				Variant.Type.Vector4I => default(Vector4I),
-				Variant.Type.Plane => default(Plane),
-				Variant.Type.Quaternion => default(Quaternion),
-				Variant.Type.Aabb => default(Aabb),
-				Variant.Type.Basis => default(Basis),
-				Variant.Type.Transform3D => default(Transform3D),
-				Variant.Type.Projection => default(Projection),
-				Variant.Type.Color => default(Color),
-				Variant.Type.StringName => Variant.NULL,
-				Variant.Type.NodePath => Variant.NULL,
-				Variant.Type.Rid => default(Rid),
-				Variant.Type.Object => Variant.NULL,
-				Variant.Type.Callable => default(Callable),
-				Variant.Type.Signal => default(Signal),
-				Variant.Type.Dictionary => Variant.NULL,
-				Variant.Type.Array => Variant.NULL,
-				Variant.Type.PackedByteArray => Variant.NULL,
-				Variant.Type.PackedInt32Array => Variant.NULL,
-				Variant.Type.PackedInt64Array => Variant.NULL,
-				Variant.Type.PackedFloat32Array => Variant.NULL,
-				Variant.Type.PackedFloat64Array => Variant.NULL,
-				Variant.Type.PackedStringArray => Variant.NULL,
-				Variant.Type.PackedVector2Array => Variant.NULL,
-				Variant.Type.PackedVector3Array => Variant.NULL,
-				Variant.Type.PackedColorArray => Variant.NULL,
-				Variant.Type.PackedVector4Array => Variant.NULL,
-				_ => Variant.NULL
-			};
-
-		public static Variant GetEmpty(Variant.Type type)
-			=> type switch
-			{
-				Variant.Type.Nil => Variant.NULL,
-				Variant.Type.Bool => false,
-				Variant.Type.Int => 0L,
-				Variant.Type.Float => 0d,
 				Variant.Type.String => "",
 				Variant.Type.Vector2 => default(Vector2),
 				Variant.Type.Vector2I => default(Vector2I),
@@ -197,8 +152,8 @@ public static class VariantExtensionMethods
 				Variant.Type.Transform3D => default(Transform3D),
 				Variant.Type.Projection => default(Projection),
 				Variant.Type.Color => default(Color),
-				Variant.Type.StringName => new StringName(""),
-				Variant.Type.NodePath => new NodePath(""),
+				Variant.Type.StringName => "",
+				Variant.Type.NodePath => "",
 				Variant.Type.Rid => default(Rid),
 				Variant.Type.Object => Variant.NULL,
 				Variant.Type.Callable => default(Callable),
@@ -329,42 +284,41 @@ public static class VariantExtensionMethods
 		public bool IsConvertibleTo(Variant.Type other, bool strict = false)
 			=> self == other
 			|| other == Variant.Type.Nil
-			|| self == Variant.Type.Nil
-				? other == Variant.Type.Object
-				: other switch
-				{
-					Variant.Type.Bool => strict
-						? self.IsAnyOf([Variant.Type.Int, Variant.Type.Float])
-						: self.IsAnyOf([Variant.Type.Int, Variant.Type.Float, Variant.Type.String]),
-					Variant.Type.Int => strict
-						? self.IsAnyOf([Variant.Type.Bool, Variant.Type.Float])
-						: self.IsAnyOf([Variant.Type.Bool, Variant.Type.Float, Variant.Type.String]),
-					Variant.Type.Float => strict
-						? self.IsAnyOf([Variant.Type.Bool, Variant.Type.Int])
-						: self.IsAnyOf([Variant.Type.Bool, Variant.Type.Int, Variant.Type.String]),
-					Variant.Type.String => strict
-						? self.IsAnyOf([Variant.Type.NodePath, Variant.Type.StringName])
-						: self != Variant.Type.Object,
-					Variant.Type.Vector2 => self == Variant.Type.Vector2I,
-					Variant.Type.Vector2I => self == Variant.Type.Vector2,
-					Variant.Type.Rect2 => self == Variant.Type.Rect2I,
-					Variant.Type.Rect2I => self == Variant.Type.Rect2,
-					Variant.Type.Transform2D => self == Variant.Type.Transform3D,
-					Variant.Type.Vector3 => self == Variant.Type.Vector3I,
-					Variant.Type.Vector3I => self == Variant.Type.Vector3,
-					Variant.Type.Vector4 => self == Variant.Type.Vector4I,
-					Variant.Type.Vector4I => self == Variant.Type.Vector4,
-					Variant.Type.Quaternion => self == Variant.Type.Basis,
-					Variant.Type.Basis => self == Variant.Type.Quaternion,
-					Variant.Type.Transform3D => self.IsAnyOf([Variant.Type.Transform2D, Variant.Type.Quaternion, Variant.Type.Basis, Variant.Type.Projection]),
-					Variant.Type.Projection => self == Variant.Type.Transform3D,
-					Variant.Type.Color => self.IsAnyOf([Variant.Type.String, Variant.Type.Int]),
-					Variant.Type.Rid => self == Variant.Type.Object,
-					Variant.Type.StringName => self == Variant.Type.String,
-					Variant.Type.NodePath => self == Variant.Type.String,
-					Variant.Type.Array => self.IsArrayType(),
-					_ => other.IsArrayType() && self == Variant.Type.Array,
-				};
+			|| self == Variant.Type.Nil && other == Variant.Type.Object
+			|| other switch
+			{
+				Variant.Type.Bool => strict
+					? self.IsAnyOf([Variant.Type.Int, Variant.Type.Float])
+					: self.IsAnyOf([Variant.Type.Int, Variant.Type.Float, Variant.Type.String]),
+				Variant.Type.Int => strict
+					? self.IsAnyOf([Variant.Type.Bool, Variant.Type.Float])
+					: self.IsAnyOf([Variant.Type.Bool, Variant.Type.Float, Variant.Type.String]),
+				Variant.Type.Float => strict
+					? self.IsAnyOf([Variant.Type.Bool, Variant.Type.Int])
+					: self.IsAnyOf([Variant.Type.Bool, Variant.Type.Int, Variant.Type.String]),
+				Variant.Type.String => strict
+					? self.IsAnyOf([Variant.Type.NodePath, Variant.Type.StringName])
+					: self != Variant.Type.Object,
+				Variant.Type.Vector2 => self == Variant.Type.Vector2I,
+				Variant.Type.Vector2I => self == Variant.Type.Vector2,
+				Variant.Type.Rect2 => self == Variant.Type.Rect2I,
+				Variant.Type.Rect2I => self == Variant.Type.Rect2,
+				Variant.Type.Transform2D => self == Variant.Type.Transform3D,
+				Variant.Type.Vector3 => self == Variant.Type.Vector3I,
+				Variant.Type.Vector3I => self == Variant.Type.Vector3,
+				Variant.Type.Vector4 => self == Variant.Type.Vector4I,
+				Variant.Type.Vector4I => self == Variant.Type.Vector4,
+				Variant.Type.Quaternion => self == Variant.Type.Basis,
+				Variant.Type.Basis => self == Variant.Type.Quaternion,
+				Variant.Type.Transform3D => self.IsAnyOf([Variant.Type.Transform2D, Variant.Type.Quaternion, Variant.Type.Basis, Variant.Type.Projection]),
+				Variant.Type.Projection => self == Variant.Type.Transform3D,
+				Variant.Type.Color => self.IsAnyOf([Variant.Type.String, Variant.Type.Int]),
+				Variant.Type.Rid => self == Variant.Type.Object,
+				Variant.Type.StringName => self == Variant.Type.String,
+				Variant.Type.NodePath => self == Variant.Type.String,
+				Variant.Type.Array => self.IsArrayType(),
+				_ => other.IsArrayType() && self == Variant.Type.Array,
+			};
 
 		private bool IsAnyOf(Variant.Type[] types)
 			=> types.Contains(self);

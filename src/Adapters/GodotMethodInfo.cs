@@ -26,7 +26,7 @@ public record GodotMethodInfo
 		get => this._dict["name"].AsString();
 		init => this._dict["name"] = value;
 	}
-	public required GodotPropertyInfo[] Params
+	public required GodotPropertyInfo[] Parameters
 	{
 		get => this._dict["args"].AsGodotArray()
 			.Select(arg => arg.AsGodotDictionary())
@@ -34,7 +34,7 @@ public record GodotMethodInfo
 			.ToArray();
 		init => this._dict["args"] = value.Select(GodotPropertyInfo.ToGodotDictionary).ToGodotArray();
 	}
-	public required Variant[] DefaultArgs
+	public required Variant[] DefaultArguments
 	{
 		get => this._dict["default_args"].AsGodotArray().ToArray();
 		init => this._dict["default_args"] = value.ToGodotArray();
@@ -74,11 +74,11 @@ public record GodotMethodInfo
 	public static GodotMethodInfo FromDictionary(Godot.Collections.Dictionary dict)
 		=> new()
 		{
-			DefaultArgs = default!,
+			DefaultArguments = default!,
 			Flags = default!,
 			Id = default,
 			Name = default!,
-			Params = default!,
+			Parameters = default!,
 			Return = default!,
 			_dict = dict,
 		};
