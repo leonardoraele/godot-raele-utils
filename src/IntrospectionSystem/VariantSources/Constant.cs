@@ -1,4 +1,6 @@
+using System;
 using Godot;
+using Godot.Collections;
 using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils.IntrospectionSystem.VariantSources;
@@ -82,18 +84,21 @@ public partial class Constant : VariantSource
 		}
 	}
 
-	protected override bool _ReferencesSceneNode()
-		=> this.Value.VariantType == Variant.Type.NodePath && !this.Value.ToString().IsWhiteSpace();
-	protected override Variant _GetValue()
+	protected override Godot.Collections.Dictionary<string, Variant.Type> _GetParameters()
+		=> [];
+	protected override Variant _GetValue(GodotObject self, Dictionary @params)
 		=> this.Value;
+	protected override bool _ReferencesSceneNode()
+		=> this.Value.VariantType == Variant.Type.NodePath && !this.Value.AsNodePath().ToString().IsWhiteSpace();
+	protected override Variant.Type _GetReturnType() => this.Value.VariantType;
 
 	//==================================================================================================================
-		#endregion
+	#endregion
 	//==================================================================================================================
-		#region METHODS
+	#region METHODS
 	//==================================================================================================================
 
 	//==================================================================================================================
-		#endregion
+	#endregion
 	//==================================================================================================================
 }

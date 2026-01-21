@@ -1,9 +1,10 @@
 using Godot;
+using Godot.Collections;
 
 namespace Raele.GodotUtils.IntrospectionSystem;
 
 [Tool][GlobalClass]
-public abstract partial class VariantTest : Resource
+public abstract partial class VariantTest : VariantSource
 {
 	//==================================================================================================================
 		#region STATICS
@@ -76,8 +77,11 @@ public abstract partial class VariantTest : Resource
 	// 	}
 	// }
 
-	protected abstract bool _ReferencesSceneNode();
 	protected abstract bool _Test(Variant variant);
+	protected override Variant _GetValue(GodotObject self, Dictionary @params)
+		=> this._Test(self);
+	protected override Variant.Type _GetReturnType()
+		=> Variant.Type.Bool;
 
 	//==================================================================================================================
 		#endregion
@@ -85,8 +89,6 @@ public abstract partial class VariantTest : Resource
 		#region METHODS
 	//==================================================================================================================
 
-	public bool ReferencesSceneNode()
-		=> this._ReferencesSceneNode();
 	public bool Test(Variant variant)
 		=> this._Test(variant);
 

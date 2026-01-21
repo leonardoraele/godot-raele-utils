@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils.IntrospectionSystem.VariantSources;
 
@@ -18,11 +19,9 @@ public partial class MathOperation : VariantSource
 	//==================================================================================================================
 
 	[ExportCategory(nameof(MathOperation))]
-	[Export] public VariantSource? LHS
-		{ get; set { field = value; field?.SetStrongType(Variant.Type.Float); } }
+	[Export] public VariantSource? LHS;
 	[Export] public OperationEnum Operation = OperationEnum.Add;
-	[Export] public VariantSource? RHS
-		{ get; set { field = value; field?.SetStrongType(Variant.Type.Float); } }
+	[Export] public VariantSource? RHS;
 
 	//==================================================================================================================
 	#endregion
@@ -82,20 +81,20 @@ public partial class MathOperation : VariantSource
 	#region OVERRIDES & VIRTUALS
 	//==================================================================================================================
 
-	public override void _ValidateProperty(Godot.Collections.Dictionary property)
-	{
-		base._ValidateProperty(property);
-		this.SetStrongType(Variant.Type.Float);
-		// switch (property["name"].AsString())
-		// {
-		// 	case nameof():
-		// 		break;
-		// }
-	}
+	// public override void _ValidateProperty(Godot.Collections.Dictionary property)
+	// {
+	// 	base._ValidateProperty(property);
+	// 	this.SetStrongType(Variant.Type.Float);
+	// 	// switch (property["name"].AsString())
+	// 	// {
+	// 	// 	case nameof():
+	// 	// 		break;
+	// 	// }
+	// }
 
 	protected override bool _ReferencesSceneNode()
 		=> this.LHS?.ReferencesSceneNode() == true || this.RHS?.ReferencesSceneNode() == true;
-	protected override Variant _GetValue()
+	protected override Variant _GetValue(GodotObject self, Godot.Collections.Dictionary @params)
 		=> this.Operation switch
 		{
 			OperationEnum.Add => this.LeftAsDouble + this.RightAsDouble,
@@ -116,6 +115,25 @@ public partial class MathOperation : VariantSource
 			OperationEnum.BitwiseXor => this.LeftAsLong ^ this.RightAsLong,
 			_ => throw new Exception($"Unsupported operation {this.Operation}."),
 		};
+	protected override Variant.Type _GetReturnType()
+		=> Variant.Type.Float;
+	protected override Variant.Type _GetExpectedType(string propertyName)
+		=> propertyName == nameof(this.LHS) || propertyName == nameof(this.RHS)
+			? this.Operation switch
+				{
+					OperationEnum.BitShiftLeft
+						or OperationEnum.BitshiftRight
+						or OperationEnum.BitwiseAnd
+						or OperationEnum.BitwiseOr
+						or OperationEnum.BitwiseXor
+						=> Variant.Type.Int,
+					_ => Variant.Type.Float,
+				}
+			: base._GetExpectedType(propertyName);
+	protected override Godot.Collections.Dictionary<string, Variant.Type> _GetParameters()
+		=> new Godot.Collections.Dictionary<string, Variant.Type>()
+			.MergeWith(this.LHS?.GetRequiredParamters() ?? [])
+			.MergeWith(this.RHS?.GetRequiredParamters() ?? []);
 
 	//==================================================================================================================
 	#endregion

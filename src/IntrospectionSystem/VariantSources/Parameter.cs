@@ -1,58 +1,62 @@
-using System;
-using System.Linq;
+using System.Collections.Generic;
 using Godot;
 using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils.IntrospectionSystem.VariantSources;
 
-[Tool][GlobalClass]
-public partial class ReadProperty : VariantSource
+public partial class Parameter : VariantSource
 {
 	//==================================================================================================================
-	#region STATICS
+		#region STATICS
 	//==================================================================================================================
 
 	// public static readonly string MyConstant = "";
 
 	//==================================================================================================================
-	#endregion
+		#endregion
 	//==================================================================================================================
-	#region EXPORTS
-	//==================================================================================================================
-
-	[ExportCategory(nameof(ReadProperty))]
-	[Export(PropertyHint.NodePathValidTypes, nameof(Node))] public NodePath PropertyOwner = "";
-	[Export] public string Property = "";
-
-	//==================================================================================================================
-	#endregion
-	//==================================================================================================================
-	#region FIELDS
+		#region EXPORTS
 	//==================================================================================================================
 
+	[Export] public string Name
+		{ get; set { field = value; this.CallDebounced(2d, GodotObject.MethodName.NotifyPropertyListChanged); } }
+		= "";
+	[Export] public Variant DefaultValue;
+
+	[ExportGroup("Type Checking")]
+	[Export] public Variant.Type ExpectedType = Variant.Type.Nil;
+	// [Export] public PropertyHint Hint = PropertyHint.None;
+	// [Export] public string HintString
+	// 	{ get; set { field = value; this.CallDebounced(2d, GodotObject.MethodName.NotifyPropertyListChanged); } }
+	// 	= "";
+
+	//==================================================================================================================
+		#endregion
+	//==================================================================================================================
+		#region FIELDS
+	//==================================================================================================================
+
+
+
+	//==================================================================================================================
+		#endregion
+	//==================================================================================================================
+		#region COMPUTED PROPERTIES
+	//==================================================================================================================
 
 
 	//==================================================================================================================
-	#endregion
+		#endregion
 	//==================================================================================================================
-	#region COMPUTED PROPERTIES
-	//==================================================================================================================
-
-	public Node? PropertyOwnerNode
-		=> this.GetLocalScene()?.GetNodeOrNull(this.PropertyOwner);
-
-	//==================================================================================================================
-	#endregion
-	//==================================================================================================================
-	#region EVENTS & SIGNALS
+		#region EVENTS & SIGNALS
 	//==================================================================================================================
 
 	// [Signal] public delegate void EventHandler();
 
 	//==================================================================================================================
-	#endregion
+		#endregion
 	//==================================================================================================================
-	#region INTERNAL TYPES
+		#region INTERNAL TYPES
 	//==================================================================================================================
 
 	// public enum Type {
@@ -60,9 +64,9 @@ public partial class ReadProperty : VariantSource
 	// }
 
 	//==================================================================================================================
-	#endregion
+		#endregion
 	//==================================================================================================================
-	#region OVERRIDES & VIRTUALS
+		#region OVERRIDES & VIRTUALS
 	//==================================================================================================================
 
 	// public override string[] _GetConfigurationWarnings()
@@ -79,49 +83,40 @@ public partial class ReadProperty : VariantSource
 		base._ValidateProperty(property);
 		switch (property["name"].AsString())
 		{
-			case nameof(this.PropertyOwner):
-				property["usage"] = (long) PropertyUsageFlags.Default
-					| (long) PropertyUsageFlags.NodePathFromSceneRoot
-					| (long) PropertyUsageFlags.UpdateAllIfModified;
+			case nameof(this.Name):
+				if (this.Name.IsWhiteSpace())
+					property["warning"] = "Parameter name cannot be empty or whitespace.";
 				break;
-			case nameof(this.Property):
-				if (this.PropertyOwnerNode is not Node subject)
-					break;
-				string[] options = subject.GetPropertyList()
-					.Where(property => property["type"].AsVariantType().IsConvertibleTo(this.Type, strict: this.StrictType))
-					.Select(dict => dict["name"].AsString())
-					.Where(name => name.Split('/').All(part => !part.StartsWith('_')))
-					.ToArray();
-				options.Sort();
-				property["hint"] = (long) PropertyHint.EnumSuggestion;
-				property["hint_string"] = options.Join(",");
+			case nameof(this.Type):
+			// case nameof(this.Hint):
 				property["usage"] = (long) PropertyUsageFlags.Default | (long) PropertyUsageFlags.UpdateAllIfModified;
-				if (this.Property.IsWhiteSpace())
-					break;
-				Variant value = this._GetValue();
-				if (value.VariantType.IsConvertibleTo(this.Type, strict: this.StrictType))
-				{
-					if (this.Type != Variant.Type.Nil)
-						value = value.As(this.Type);
-					property["comment"] = $"Current value: {Json.Stringify(value).BBCCode()} ({value.VariantType}).";
-				}
-				else
-					property["error"] = "The selected property does not exist on the context node or does not match the expected type.";
+				break;
+			case nameof(this.DefaultValue):
+				property["type"] = (long) this.Type;
+				property["usage"] = (long) PropertyUsageFlags.Default | (long) PropertyUsageFlags.NilIsVariant;
 				break;
 		}
 	}
 
-	protected override bool _ReferencesSceneNode() => this.PropertyOwnerNode != null;
-	protected override Variant _GetValue()
-		=> this.PropertyOwnerNode?.GetIndexed(this.Property) ?? Variant.NULL;
+	protected override Godot.Collections.Dictionary<string, Variant.Type> _GetParameters()
+		=> new() { { this.Name, this.ExpectedType } };
+	protected override bool _ReferencesSceneNode() => false;
+	protected override Variant.Type _GetReturnType() => this.ExpectedType;
+	protected override Variant _GetValue(GodotObject self, Godot.Collections.Dictionary @params)
+	{
+		Variant value = @params.GetValueOrDefault(this.Name, this.DefaultValue);
+		return this.ExpectedType != Variant.Type.Nil
+			? value.As(this.ExpectedType)
+			: value;
+	}
 
 	//==================================================================================================================
-	#endregion
+		#endregion
 	//==================================================================================================================
-	#region METHODS
+		#region METHODS
 	//==================================================================================================================
 
 	//==================================================================================================================
-	#endregion
+		#endregion
 	//==================================================================================================================
 }

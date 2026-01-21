@@ -1,10 +1,13 @@
+using System.Collections.Generic;
+using System.Linq;
 using Godot;
+using Godot.Collections;
 using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils.IntrospectionSystem.VariantSources;
 
 [Tool][GlobalClass]
-public partial class RunExpression : VariantSource
+public partial class GDSExpression : VariantSource
 {
 	//==================================================================================================================
 		#region STATICS
@@ -18,12 +21,16 @@ public partial class RunExpression : VariantSource
 		#region EXPORTS
 	//==================================================================================================================
 
-	[ExportCategory(nameof(RunExpression))]
-	[Export(PropertyHint.NodePathValidTypes, nameof(Node))] public NodePath Context = "";
-	[Export] public Variant Param;
+	[ExportCategory(nameof(GDSExpression))]
+	[Export] public Godot.Collections.Dictionary<string, VariantSource> Parameters
+		{ get; set { field = value; this.Interpreter = null!; } }
+		= [];
 	[Export(PropertyHint.Expression)] public string Expression
 		{ get; set { field = value; this.Interpreter = null!; } }
 		= "";
+
+	[ExportGroup("Type Checking")]
+	[Export] public Variant.Type ExpectedType = Variant.Type.Nil;
 
 	//==================================================================================================================
 	#endregion
@@ -38,7 +45,7 @@ public partial class RunExpression : VariantSource
 			if (field == null)
 			{
 				field = new();
-				field.Parse(this.Expression, ["param"]);
+				field.Parse(this.Expression, this.Parameters.Keys.ToArray());
 			}
 			return field;
 		}
@@ -51,8 +58,8 @@ public partial class RunExpression : VariantSource
 	#region COMPUTED PROPERTIES
 	//==================================================================================================================
 
-	private Node? ContextNode
-		=> this.GetLocalScene()?.GetNodeOrNull(this.Context);
+	// private Node? ContextNode
+	// 	=> this.GetLocalScene()?.GetNodeOrNull(this.Context);
 
 	//==================================================================================================================
 	#endregion
@@ -83,30 +90,43 @@ public partial class RunExpression : VariantSource
 		base._ValidateProperty(property);
 		switch (property["name"].AsString())
 		{
-			case nameof(this.Context):
-				property["usage"] = (long) PropertyUsageFlags.Default
-					| (long) PropertyUsageFlags.UpdateAllIfModified
-					| (long) PropertyUsageFlags.NodePathFromSceneRoot;
-				break;
-			case nameof(this.Param):
-				property["usage"] = (long) PropertyUsageFlags.Default | (long) PropertyUsageFlags.NilIsVariant;
-				break;
+			// case nameof(this.Context):
+			// 	property["usage"] = (long) PropertyUsageFlags.Default
+			// 		| (long) PropertyUsageFlags.UpdateAllIfModified
+			// 		| (long) PropertyUsageFlags.NodePathFromSceneRoot;
+			// 	break;
+			// case nameof(this.Param):
+			// 	property["usage"] = (long) PropertyUsageFlags.Default | (long) PropertyUsageFlags.NilIsVariant;
+			// 	break;
 		}
 	}
 
+	protected override Godot.Collections.Dictionary<string, Variant.Type> _GetParameters()
+		=> this.Parameters.Values.Select(source => source.GetRequiredParamters())
+			.Aggregate(new Godot.Collections.Dictionary<string, Variant.Type>(), (result, @params) =>
+			{
+				result.Merge(@params);
+				return result;
+			});
+	protected override Variant _GetValue(GodotObject self, Dictionary @params)
+	{
+		Variant value = this.Interpreter.Execute(this.Parameters.Values.Select(source => source.GetValue(self, @params)).ToGodotArray(), self);
+		if (this.Interpreter.HasExecuteFailed())
+			return Variant.GetDefault(this.ExpectedType);
+		return this.ExpectedType != Variant.Type.Nil ? value.As(this.ExpectedType) : value;
+	}
 	protected override bool _ReferencesSceneNode()
-		=> !this.Context.ToString().IsWhiteSpace()
-			|| this.Param.VariantType == Variant.Type.NodePath && !this.Param.AsNodePath().ToString().IsWhiteSpace();
-	protected override Variant _GetValue()
-		=> this.Interpreter.Execute([this.Param], this.ContextNode);
+		=> this.Parameters.Values.Any(source => source.ReferencesSceneNode());
+	protected override Variant.Type _GetReturnType()
+		=> this.ExpectedType;
 
 	//==================================================================================================================
-		#endregion
+	#endregion
 	//==================================================================================================================
-		#region METHODS
+	#region METHODS
 	//==================================================================================================================
 
 	//==================================================================================================================
-		#endregion
+	#endregion
 	//==================================================================================================================
 }

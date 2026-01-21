@@ -47,4 +47,24 @@ public static class GodotExtensionMethods
 		public Godot.Collections.Dictionary<TKey, TValue> ToGodotDictionaryT()
 			=> self.ToDictionary().ToGodotDictionaryT();
 	}
+
+	extension (Godot.Collections.Dictionary self)
+	{
+		public Godot.Collections.Dictionary MergeWith(params Godot.Collections.Dictionary[] others)
+		{
+			foreach (Godot.Collections.Dictionary other in others)
+				self.Merge(other);
+			return self;
+		}
+	}
+
+	extension<[MustBeVariant] TKey, [MustBeVariant] TValue>(Godot.Collections.Dictionary<TKey, TValue> self) where TKey : notnull
+	{
+		public Godot.Collections.Dictionary<TKey, TValue> MergeWith(params Godot.Collections.Dictionary<TKey, TValue>[] others)
+		{
+			foreach (Godot.Collections.Dictionary<TKey, TValue> other in others)
+				self.Merge(other);
+			return self;
+		}
+	}
 }

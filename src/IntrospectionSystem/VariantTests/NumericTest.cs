@@ -1,4 +1,5 @@
 using Godot;
+using Godot.Collections;
 
 namespace Raele.GodotUtils.IntrospectionSystem.VariantTests;
 
@@ -84,6 +85,11 @@ public partial class NumericTest : VariantTest
 	}
 
 	protected override bool _Test(Variant variant)
+	{
+		throw new System.NotImplementedException();
+	}
+
+	protected override Dictionary<string, Variant.Type> _GetParameters()
 	{
 		throw new System.NotImplementedException();
 	}

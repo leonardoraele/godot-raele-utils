@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 
 namespace Raele.GodotUtils.Extensions;
@@ -7,6 +8,9 @@ public static class GodotObjectExtensionMethods
 {
 	private const double DEFAULT_DEBOUNCE_DELAY_SECONDS = 0.200d;
 	private const double DEFAULT_THROTTLE_DELAY_SECONDS = 0.200d;
+
+	private static Dictionary<int, Tween> DebounceTweens = [];
+	private static Dictionary<int, Tween> ThrottleTweens = [];
 
 	extension(GodotObject self)
 	{
