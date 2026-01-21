@@ -114,7 +114,7 @@ public partial class GDSExpression : VariantSource
 	{
 		Variant value = this.Interpreter.Execute(
 			this.Parameters.Values.Select(source => source?.GetValue(@params) ?? Variant.NULL).ToGodotArray(),
-			this.Context?.GetValue<GodotObject>(@params)
+			this.GetLocalScene().GetNode(this.Context?.GetValue<NodePath>(@params))
 		);
 		if (this.Interpreter.HasExecuteFailed())
 			return Variant.GetDefault(this.ExpectedType);
