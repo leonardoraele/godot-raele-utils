@@ -17,10 +17,16 @@ public static class VariantExtensionMethods
 		public string ToJsonString(string indent = "", bool sortKeys = true, bool fullPrecision = false)
 			=> Json.Stringify(self, indent, sortKeys, fullPrecision);
 
+		public bool IsNull()
+			=> self.VariantType == Variant.Type.Nil;
+
 		public bool IsEmpty()
 			=> self.VariantType == Variant.Type.Dictionary ? self.AsGodotDictionary().Count == 0
 				: self.VariantType.IsArrayType() ? self.AsGodotArray().Count == 0
 				: self.Equals(Variant.GetDefault(self.VariantType));
+
+		public bool IsConvertibleTo(Variant.Type other, bool strict = false)
+			=> self.VariantType.IsConvertibleTo(other, strict);
 
 		public Variant.Type AsVariantType() => (Variant.Type) self.AsInt64();
 		public PropertyHint AsPropertyHint() => (PropertyHint) self.AsInt64();

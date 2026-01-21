@@ -1,6 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Godot;
-using Godot.Collections;
+using Raele.GodotUtils.Adapters;
 using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils.IntrospectionSystem.VariantSources;
@@ -75,18 +76,17 @@ public partial class Constant : VariantSource
 				property["usage"] = (long) PropertyUsageFlags.Default | (long) PropertyUsageFlags.UpdateAllIfModified;
 				break;
 			case nameof(this.Value):
-				property["type"] = (long) this.Type;
 				property["hint"] = (long) this.TypeHint;
-				property["usage"] = this.Value.VariantType == Variant.Type.NodePath
-					? (long) PropertyUsageFlags.Default | (long) PropertyUsageFlags.NodePathFromSceneRoot
-					: (long) PropertyUsageFlags.Default | (long) PropertyUsageFlags.NilIsVariant;
+				property["usage"] = (long) PropertyUsageFlags.Default
+					| (long) PropertyUsageFlags.NodePathFromSceneRoot
+					| (long) PropertyUsageFlags.NilIsVariant;
 				break;
 		}
 	}
 
-	protected override Godot.Collections.Dictionary<string, Variant.Type> _GetParameters()
+	protected override IEnumerable<GodotPropertyInfo> _GetAdditionalParameters()
 		=> [];
-	protected override Variant _GetValue(GodotObject self, Dictionary @params)
+	protected override Variant _GetValue(Dictionary<string, Variant> @params)
 		=> this.Value;
 	protected override bool _ReferencesSceneNode()
 		=> this.Value.VariantType == Variant.Type.NodePath && !this.Value.AsNodePath().ToString().IsWhiteSpace();

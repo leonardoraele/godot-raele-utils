@@ -1,4 +1,8 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using Godot;
+using Raele.GodotUtils.Adapters;
 using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils.IntrospectionSystem;
@@ -10,7 +14,7 @@ public abstract partial class VariantSource : Resource
 	#region STATICS
 	//==================================================================================================================
 
-	// public static readonly string MyConstant = "";
+	public static readonly string ADDITIONAL_PARAMETERS_PREFIX = "additional_parameters/";
 
 	//==================================================================================================================
 	#endregion
@@ -18,16 +22,13 @@ public abstract partial class VariantSource : Resource
 	#region EXPORTS
 	//==================================================================================================================
 
-	[ExportCategory(nameof(VariantSource))]
-	[ExportGroup("Overrides", "Override")]
-	[Export] public GodotObject? OverrideContext;
-	[Export] public Godot.Collections.Dictionary OverrideParameters = [];
-
 	//==================================================================================================================
 	#endregion
 	//==================================================================================================================
 	#region FIELDS
 	//==================================================================================================================
+
+	private Dictionary<string, Variant> AdditionalParameters = [];
 
 	//==================================================================================================================
 	#endregion
@@ -62,9 +63,52 @@ public abstract partial class VariantSource : Resource
 	//==================================================================================================================
 
 	public override Godot.Collections.Array<Godot.Collections.Dictionary> _GetPropertyList()
+		=> (base._GetPropertyList() ?? [])
+			.Select(GodotPropertyInfo.FromGodotDictionary)
+			.Append(new() {
+				Name = nameof(VariantSource),
+				Usage = [PropertyUsageFlags.Category],
+			})
+			.Concat(
+				this.GetAdditionalParameters()
+					.Select(property => property with { Name = ADDITIONAL_PARAMETERS_PREFIX + property.Name })
+			)
+			.Select(GodotPropertyInfo.ToGodotDictionary)
+			.ToGodotArrayT();
+
+	public override Variant _Get(StringName property)
 	{
-		return base._GetPropertyList();
+		if (property.ToString().StartsWith(ADDITIONAL_PARAMETERS_PREFIX))
+		{
+			string paramName = property.ToString().Substring(ADDITIONAL_PARAMETERS_PREFIX.Length);
+			if (this.AdditionalParameters.ContainsKey(paramName))
+				return this.AdditionalParameters[paramName];
+		}
+		return Variant.NULL;
 	}
+
+	public override bool _Set(StringName property, Variant value)
+	{
+		if (property.ToString().StartsWith(ADDITIONAL_PARAMETERS_PREFIX))
+		{
+			string paramName = property.ToString().Substring(ADDITIONAL_PARAMETERS_PREFIX.Length);
+			if (value.Equals(Variant.NULL))
+				this.AdditionalParameters.Remove(paramName);
+			else
+				this.AdditionalParameters[paramName] = value;
+			return true;
+		}
+		return false;
+	}
+
+	public override Variant _PropertyGetRevert(StringName property)
+		=> property.ToString().StartsWith(ADDITIONAL_PARAMETERS_PREFIX)
+			? Variant.NULL
+			: base._PropertyGetRevert(property);
+	public override bool _PropertyCanRevert(StringName property)
+		=> property.ToString().StartsWith(ADDITIONAL_PARAMETERS_PREFIX)
+			&& this.AdditionalParameters.ContainsKey(property.ToString().Substring(ADDITIONAL_PARAMETERS_PREFIX.Length))
+			|| base._PropertyCanRevert(property);
 
 	public override void _ValidateProperty(Godot.Collections.Dictionary property)
 	{
@@ -84,54 +128,43 @@ public abstract partial class VariantSource : Resource
 					property["comment"] = "This resource must be local to the scene because it references a node within the scene.";
 					break;
 				}
-				if (
-					property["type"].AsVariantType() == Variant.Type.Object
-					&& (property["usage"].AsInt64() | (long) PropertyUsageFlags.ScriptVariable) != 0
-				)
-				{
-					property["usage"] = property["usage"].AsInt64() | (long) PropertyUsageFlags.UpdateAllIfModified;
-					if (
-						this.Get(property["name"].AsString()).AsGodotObject() is VariantSource provider
-						&& this._GetExpectedType(property["name"].AsString()) is Variant.Type expectedType
-						&& expectedType != Variant.Type.Nil
-						// && !provider.Type.IsConvertibleTo(property["type"].AsVariantType())
-					)
-						property["error"] = $"Type mismatch. Expected value of type {property["type"].AsVariantType()}, but the assigned value is of type {provider.Type}.";
-				}
+				// if (
+				// 	property["type"].AsVariantType() == Variant.Type.Object
+				// 	&& (property["usage"].AsInt64() | (long) PropertyUsageFlags.ScriptVariable) != 0
+				// )
+				// {
+				// 	property["usage"] = property["usage"].AsInt64() | (long) PropertyUsageFlags.UpdateAllIfModified;
+				// 	if (
+				// 		this.Get(property["name"].AsString()).AsGodotObject() is VariantSource provider
+				// 		&& this._GetExpectedType(property["name"].AsString()) is Variant.Type expectedType
+				// 		&& expectedType != Variant.Type.Nil
+				// 		// && !provider.Type.IsConvertibleTo(property["type"].AsVariantType())
+				// 	)
+				// 		property["error"] = $"Type mismatch. Expected value of type {property["type"].AsVariantType()}, but the assigned value is of type {provider.Type}.";
+				// }
 
 				break;
 		}
 	}
 
 	/// <summary>
-	/// // TODO
-	/// A map of parameter name/type pairs that this source requires to function.
+	/// Determines what type this source implementation can return, or an empty collection if it can return any value.
+	/// </summary>
+	protected abstract Variant.Type _GetReturnType();
+	/// <summary>
+	/// A list of properties this source expects to receive as parameters when _GetValue() is called.
 	///
 	/// Most VariantSource implementations will simply merge the parameters of their dependencies.
-	///
-	/// A specific VariantSource named Parameter should export a string/type vars and return a single-entry dictionary
-	/// with that info. On _GetValue(), this Parameter source will look for a value with the given name in the provided
-	/// parameters and return it (or Variant.NULL if not found).
 	/// </summary>
-	protected abstract Godot.Collections.Dictionary<string, Variant.Type> _GetParameters();
+	protected abstract IEnumerable<GodotPropertyInfo> _GetAdditionalParameters();
 	/// <summary>
 	/// Should return true if this source references a node within the scene. i.e. If any exported variable is a
 	/// NodePath.
 	///
-	/// // TODO Should do it automatically in _ValidateProperty() and _GetPropertyList()
+	/// This should probably only return true for the Constant source when the selected type is NodePath.
 	/// </summary>
 	protected abstract bool _ReferencesSceneNode();
-	/// <summary>
-	/// Determines what type is expected for a given exported property, or Variant.Type.Nil if any type is accepted.
-	///
-	/// We match this type with the one returned from _ReturnTypes to validate assignments in the editor.
-	/// </summary>
-	protected virtual Variant.Type _GetExpectedType(string propertyName) => Variant.Type.Nil;
-	/// <summary>
-	/// Determines what type this source implementation can return, or an empty collection if it can return any value.
-	/// </summary>
-	protected abstract Variant.Type _GetReturnType();
-	protected abstract Variant _GetValue(GodotObject self, Godot.Collections.Dictionary @params);
+	protected abstract Variant _GetValue(Dictionary<string, Variant> args);
 
 	//==================================================================================================================
 		#endregion
@@ -139,20 +172,69 @@ public abstract partial class VariantSource : Resource
 		#region METHODS
 	//==================================================================================================================
 
-	public Godot.Collections.Dictionary<string, Variant.Type> GetRequiredParamters()
-		=> this._GetParameters();
-
-	public Variant GetValue(GodotObject? context = null, Godot.Collections.Dictionary? args = null)
+	public IEnumerable<GodotPropertyInfo> GetAdditionalParameters()
 	{
-		Variant value = this._GetValue(this.OverrideContext ?? context ?? Engine.GetSceneTree().Root, args ?? []);
-		return value.As(this._GetReturnType());
-		// return this.Type != Variant.Type.Nil
-		// 	? value.As(this.Type)
-		// 	: value;
+		return this._GetAdditionalParameters()
+			.GroupBy(property => property.Name)
+			.Select(grouping =>
+			{
+				if (grouping.Select(property => property.Type).Distinct().Count() > 1)
+					GD.PushWarning(
+						$"Conflicting types for parameter \"{grouping.Key}\" in {nameof(VariantSource)} \"{this.ResourcePath}\". " +
+						$"Using type '{grouping.First().Type}'"
+					);
+				return grouping.First() is GodotPropertyInfo info ? info with
+				{
+					Usage = grouping.SelectMany(property => property.Usage)
+						.Concat([PropertyUsageFlags.ScriptVariable])
+						.ToHashSet(),
+				} : null!;
+			});
+	}
+
+	public Variant GetValue(Dictionary<string, Variant>? args = null)
+	{
+		Variant value = this._GetValue(
+			new Dictionary<string, Variant>()
+				.Concat(args ?? [])
+				.Concat(this.AdditionalParameters)
+				.ToDictionary()
+		);
+		return this.Type != Variant.Type.Nil
+			? value.As(this.Type)
+			: value;
+	}
+
+	public T GetValue<[MustBeVariant] T>(Dictionary<string, Variant>? args = null)
+	{
+		Variant value = this.GetValue(args);
+		Variant.Type expectedType = Variant.Typeof<T>();
+		if (value.VariantType != expectedType)
+		{
+			GD.PushWarning(
+				$"Type mismatch when getting value of {nameof(VariantSource)} \"{this.ResourcePath}\". " +
+				$"Expected type {expectedType}, but got type {value.VariantType}."
+			);
+			return Variant.GetDefault(expectedType).As<T>();
+		}
+		return value.As<T>();
 	}
 
 	public bool ReferencesSceneNode()
-		=> this._ReferencesSceneNode();
+	{
+		return this._ReferencesSceneNode()
+			|| this.GetPropertyList()
+				.Select(GodotPropertyInfo.FromGodotDictionary)
+				.Any(property =>
+					property.Type == Variant.Type.NodePath
+					// TODO Test if this is necessary:
+					// || (
+					// 	property.Type == Variant.Type.Object
+					// 	&& (this.Get(property.Name).AsGodotObject() is VariantSource provider)
+					// 	&& provider.ReferencesSceneNode()
+					// )
+				);
+	}
 
 	//==================================================================================================================
 		#endregion

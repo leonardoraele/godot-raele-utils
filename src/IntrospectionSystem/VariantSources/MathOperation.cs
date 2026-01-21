@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Godot;
-using Raele.GodotUtils.Extensions;
+using Raele.GodotUtils.Adapters;
 
 namespace Raele.GodotUtils.IntrospectionSystem.VariantSources;
 
+[Tool][GlobalClass]
 public partial class MathOperation : VariantSource
 {
 	//==================================================================================================================
@@ -37,10 +40,10 @@ public partial class MathOperation : VariantSource
 	#region COMPUTED PROPERTIES
 	//==================================================================================================================
 
-	private double LeftAsDouble => this.LHS?.GetValue().AsDouble() ?? 0d;
-	private double RightAsDouble => this.RHS?.GetValue().AsDouble() ?? 0d;
-	private long LeftAsLong => this.LHS?.GetValue().AsInt64() ?? 0L;
-	private long RightAsLong => this.RHS?.GetValue().AsInt64() ?? 0L;
+	private double LeftAsDouble => this.LHS?.GetValue<double>() ?? 0d;
+	private double RightAsDouble => this.RHS?.GetValue<double>() ?? 0d;
+	private long LeftAsLong => this.LHS?.GetValue<long>() ?? 0L;
+	private long RightAsLong => this.RHS?.GetValue<long>() ?? 0L;
 
 	//==================================================================================================================
 	#endregion
@@ -92,9 +95,15 @@ public partial class MathOperation : VariantSource
 	// 	// }
 	// }
 
+	protected override Variant.Type _GetReturnType()
+		=> Variant.Type.Float;
+	protected override IEnumerable<GodotPropertyInfo> _GetAdditionalParameters()
+		=> (this.LHS?.GetAdditionalParameters() ?? [])
+			.Concat(this.RHS?.GetAdditionalParameters() ?? []);
 	protected override bool _ReferencesSceneNode()
-		=> this.LHS?.ReferencesSceneNode() == true || this.RHS?.ReferencesSceneNode() == true;
-	protected override Variant _GetValue(GodotObject self, Godot.Collections.Dictionary @params)
+		=> this.LHS?.ReferencesSceneNode() == true
+			|| this.RHS?.ReferencesSceneNode() == true;
+	protected override Variant _GetValue(Dictionary<string, Variant> @params)
 		=> this.Operation switch
 		{
 			OperationEnum.Add => this.LeftAsDouble + this.RightAsDouble,
@@ -115,25 +124,6 @@ public partial class MathOperation : VariantSource
 			OperationEnum.BitwiseXor => this.LeftAsLong ^ this.RightAsLong,
 			_ => throw new Exception($"Unsupported operation {this.Operation}."),
 		};
-	protected override Variant.Type _GetReturnType()
-		=> Variant.Type.Float;
-	protected override Variant.Type _GetExpectedType(string propertyName)
-		=> propertyName == nameof(this.LHS) || propertyName == nameof(this.RHS)
-			? this.Operation switch
-				{
-					OperationEnum.BitShiftLeft
-						or OperationEnum.BitshiftRight
-						or OperationEnum.BitwiseAnd
-						or OperationEnum.BitwiseOr
-						or OperationEnum.BitwiseXor
-						=> Variant.Type.Int,
-					_ => Variant.Type.Float,
-				}
-			: base._GetExpectedType(propertyName);
-	protected override Godot.Collections.Dictionary<string, Variant.Type> _GetParameters()
-		=> new Godot.Collections.Dictionary<string, Variant.Type>()
-			.MergeWith(this.LHS?.GetRequiredParamters() ?? [])
-			.MergeWith(this.RHS?.GetRequiredParamters() ?? []);
 
 	//==================================================================================================================
 	#endregion

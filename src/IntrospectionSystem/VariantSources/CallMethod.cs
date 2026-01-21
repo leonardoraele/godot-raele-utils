@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
-using Godot.Collections;
 using Raele.GodotUtils.Adapters;
 using Raele.GodotUtils.Extensions;
 
@@ -23,11 +22,10 @@ public partial class CallMethod : VariantSource
 	//==================================================================================================================
 
 	[ExportCategory(nameof(CallMethod))]
+	[Export] public VariantSource? Target;
 	[Export(PropertyHint.TypeString)] public string TypeName = "";
-	[Export] public string Method
-		{ get; set { field = value; this.NotifyPropertyListChanged(); } }
-		= "";
-	/*NoEditor*/ [Export] public Godot.Collections.Array MethodArguments = [];
+	[Export] public VariantSource? Method;
+	[Export] public VariantSource?[] Arguments = [];
 
 	//==================================================================================================================
 		#endregion
@@ -96,59 +94,75 @@ public partial class CallMethod : VariantSource
 	// 	return false;
 	// }
 
-	public override void _ValidateProperty(Godot.Collections.Dictionary property)
-	{
-		base._ValidateProperty(property);
-		switch (property["name"].AsString())
-		{
-			// case nameof(this.Target):
-			// 	property["usage"] = (long) PropertyUsageFlags.Default
-			// 		| (long) PropertyUsageFlags.NodePathFromSceneRoot
-			// 		| (long) PropertyUsageFlags.UpdateAllIfModified;
-			// 	break;
-			// case nameof(this.Method): {
-			// 	if (this.TargetNode is not Node context)
-			// 	{
-			// 		property["usage"] = (long) PropertyUsageFlags.ReadOnly;
-			// 		break;
-			// 	}
-			// 	property["hint"] = (long) PropertyHint.Enum;
-			// 	property["hint_string"] = context.GetMethodList()
-			// 		.Where(method => method["return"].AsGodotDictionary()["type"].AsVariantType().IsConvertibleTo(this.Type, strict: this.StrictType))
-			// 		.Select(dict => dict["name"].AsString())
-			// 		.Where(name => !name.StartsWith('_'))
-			// 		.JoinIntoString(",");
-			// 	property["usage"] = (long) PropertyUsageFlags.Default | (long) PropertyUsageFlags.UpdateAllIfModified;
-			// 	if (!context.HasMethod(this.Method))
-			// 		property["error"] = $"The method {this.Method.BBCCode()} does not exist on the target node.";
-			// 	break;
-			// }
-			// case nameof(this.MethodArguments): {
-			// 	property["usage"] = (long) PropertyUsageFlags.NoEditor;
-			// 	if (this.TargetNode is not Node context || !context.HasMethod(this.Method))
-			// 	{
-			// 		this.MethodArguments = [];
-			// 		break;
-			// 	}
-			// 	while (this.MethodArguments.Count < context.GetMethodArgumentCount(this.Method))
-			// 	{
-			// 		Variant value = this.MethodInfo?.Parameters[this.MethodArguments.Count].DefaultValue ?? Variant.NULL;
-			// 		if (value.Equals(Variant.NULL) && this.MethodInfo != null)
-			// 			value = Variant.GetDefault(this.MethodInfo.Parameters[this.MethodArguments.Count].Type);
-			// 		this.MethodArguments.Add(value);
-			// 	}
-			// 	while (this.MethodArguments.Count > context.GetMethodArgumentCount(this.Method))
-			// 		this.MethodArguments.RemoveAt(this.MethodArguments.Count - 1);
-			// 	break;
-			// }
-		}
-	}
+	// public override void _ValidateProperty(Godot.Collections.Dictionary property)
+	// {
+	// 	base._ValidateProperty(property);
+	// 	switch (property["name"].AsString())
+	// 	{
+	// 		case nameof(this.Target):
+	// 			property["usage"] = (long) PropertyUsageFlags.Default
+	// 				| (long) PropertyUsageFlags.NodePathFromSceneRoot
+	// 				| (long) PropertyUsageFlags.UpdateAllIfModified;
+	// 			break;
+	// 		case nameof(this.Method): {
+	// 			if (this.TargetNode is not Node context)
+	// 			{
+	// 				property["usage"] = (long) PropertyUsageFlags.ReadOnly;
+	// 				break;
+	// 			}
+	// 			property["hint"] = (long) PropertyHint.Enum;
+	// 			property["hint_string"] = context.GetMethodList()
+	// 				.Where(method => method["return"].AsGodotDictionary()["type"].AsVariantType().IsConvertibleTo(this.Type, strict: this.StrictType))
+	// 				.Select(dict => dict["name"].AsString())
+	// 				.Where(name => !name.StartsWith('_'))
+	// 				.JoinIntoString(",");
+	// 			property["usage"] = (long) PropertyUsageFlags.Default | (long) PropertyUsageFlags.UpdateAllIfModified;
+	// 			if (!context.HasMethod(this.Method))
+	// 				property["error"] = $"The method {this.Method.BBCCode()} does not exist on the target node.";
+	// 			break;
+	// 		}
+	// 		case nameof(this.MethodArguments): {
+	// 			property["usage"] = (long) PropertyUsageFlags.NoEditor;
+	// 			if (this.TargetNode is not Node context || !context.HasMethod(this.Method))
+	// 			{
+	// 				this.MethodArguments = [];
+	// 				break;
+	// 			}
+	// 			while (this.MethodArguments.Count < context.GetMethodArgumentCount(this.Method))
+	// 			{
+	// 				Variant value = this.MethodInfo?.Parameters[this.MethodArguments.Count].DefaultValue ?? Variant.NULL;
+	// 				if (value.Equals(Variant.NULL) && this.MethodInfo != null)
+	// 					value = Variant.GetDefault(this.MethodInfo.Parameters[this.MethodArguments.Count].Type);
+	// 				this.MethodArguments.Add(value);
+	// 			}
+	// 			while (this.MethodArguments.Count > context.GetMethodArgumentCount(this.Method))
+	// 				this.MethodArguments.RemoveAt(this.MethodArguments.Count - 1);
+	// 			break;
+	// 		}
+	// 	}
+	// }
 
-	protected override Godot.Collections.Dictionary<string, Variant.Type> _GetParameters() => [];
-	protected override bool _ReferencesSceneNode() => false;
-	protected override Variant.Type _GetReturnType() => Variant.Type.Nil;
-	protected override Variant _GetValue(GodotObject self, Dictionary @params)
-		=> self.Call(this.Method);
+	protected override IEnumerable<GodotPropertyInfo> _GetAdditionalParameters()
+		=> (this.Target?.GetAdditionalParameters() ?? [])
+			.Concat(this.Method?.GetAdditionalParameters() ?? [])
+			.Concat(this.Arguments.SelectMany(arg => arg?.GetAdditionalParameters() ?? []));
+	protected override bool _ReferencesSceneNode()
+		=> this.Target?.ReferencesSceneNode() == true
+			|| this.Method?.ReferencesSceneNode() == true
+			|| this.Arguments.Any(arg => arg?.ReferencesSceneNode() == true);
+	protected override Variant.Type _GetReturnType()
+		=> Variant.Type.Nil;
+	protected override Variant _GetValue(Dictionary<string, Variant> @params)
+		=> this.Method?.GetValue<string>(@params) is string method
+			&& !method.IsWhiteSpace()
+			&& this.Target?.GetValue<GodotObject>(@params) is GodotObject target
+			&& target.HasMethod(method)
+				? target.Callv(
+						method,
+						this.Arguments.Select(source => source?.GetValue(@params) ?? Variant.NULL).ToGodotArray()
+					)
+					.As(this.Type)
+				: Variant.NULL;
 
 	//==================================================================================================================
 	#endregion
