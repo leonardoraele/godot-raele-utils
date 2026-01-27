@@ -172,4 +172,13 @@ public static class GodotObjectExtensionMethods
 			self.Call(methodName, args);
 		}
 	}
+
+	extension <T>(T self) where T : GodotObject
+	{
+		public T WithMeta(StringName name, Variant value)
+		{
+			self.SetMeta(name, value);
+			return self;
+		}
+	}
 }
