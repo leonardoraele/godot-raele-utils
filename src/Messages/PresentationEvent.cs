@@ -15,8 +15,19 @@ namespace Raele.GodotUtils.Messages;
 /// they were published, waiting for each event's <see cref="Completed"/> task to complete before delivering the next,
 /// so that presentation events are executed sequentially.
 /// </summary>
-public partial class PresentationEvent : GenericMessage
+public partial class PresentationEvent : Event
 {
+	/// <summary>
+	/// By default, the message bus will wait for a presentation event to complete before publishing the next one.
+	/// this flag is set to `true`, the message bus will publish this event in parallel with any others that are
+	/// currently being presented.
+	///
+	/// Note: This method allows this event to run simultaneously with the *previous* event. To run simultaneously with
+	/// a subsequent event, either this event's handlers should not call AddTask() or AddTween() methods, or the
+	/// subsequent event must have this flag set to `true`.
+	/// </summary>
+	public bool Parallel { get; init; } = false;
+
 	/// <summary>
 	/// A task that completes when all handlers have finished presenting this event.
 	/// </summary>
@@ -33,17 +44,6 @@ public partial class PresentationEvent : GenericMessage
 		=> this.AddTask(task());
 
 	/// <summary>
-	/// Adds a new task to represent a handler's presentation of this event, and returns an action that the handler
-	/// can call to mark the task as completed.
-	/// </summary>
-	public Action AddTask()
-	{
-		TaskCompletionSource source = new();
-		this.AddTask(source.Task);
-		return source.SetResult;
-	}
-
-	/// <summary>
 	/// Adds a tween as a task representing a handler's presentation of this event. The task completes when the tween
 	/// finishes.
 	/// </summary>
@@ -58,57 +58,6 @@ public partial class PresentationEvent : GenericMessage
 		=> this.AddTask(this.Completed.ContinueWith(_ => task()).Unwrap());
 
 	/// <summary>
-	/// Adds a new task that starts only after all previously registered tasks have completed.
-	///
-	/// The callback task function is called when it's time to start the task, and is provided with a callback function
-	/// that the handler can call to mark the task as completed.
-	/// </summary>
-	public void AddTaskLate(Action<Action> task)
-		=> this.AddTask(
-			this.Completed.ContinueWith(_ =>
-				{
-					TaskCompletionSource source = new();
-					task(source.SetResult);
-					return source.Task;
-				})
-				.Unwrap()
-		);
-
-	/// <summary>
-	/// Adds a new task that starts only after all previously registered tasks have completed.
-	///
-	/// The callback task function is called when it's time to start the task, and is provided with two callback
-	/// functions: one to mark the task as completed successfully, and another to mark it as failed with an exception.
-	/// </summary>
-	public void AddTaskLate(Action<Action, Action<Exception>> task)
-		=> this.AddTask(
-			this.Completed.ContinueWith(_ =>
-				{
-					TaskCompletionSource source = new();
-					task(source.SetResult, source.SetException);
-					return source.Task;
-				})
-				.Unwrap()
-		);
-
-	/// <summary>
-	/// Adds a new task that starts only after all previously registered tasks have completed.
-	///
-	/// The callback task function is called when it's time to start the task, and is provided with two callback
-	/// functions: one to mark the task as completed successfully, and another to mark it as canceled.
-	/// </summary>
-	public void AddTaskLate(Action<Action, Action> task)
-		=> this.AddTask(
-			this.Completed.ContinueWith(_ =>
-				{
-					TaskCompletionSource source = new();
-					task(source.SetResult, source.SetCanceled);
-					return source.Task;
-				})
-				.Unwrap()
-		);
-
-	/// <summary>
 	/// Adds a tween as a late task representing a handler's presentation of this event. The tween starts only after
 	/// all previously registered tasks have completed, and the task completes when the tween finishes.
 	/// </summary>
@@ -121,4 +70,7 @@ public partial class PresentationEvent : GenericMessage
 			await tween.ToSignal(tween, Tween.SignalName.Finished).ToTask();
 		});
 	}
+
+	protected override void _Publish()
+		=> MessageBus.Singleton.DispatchPresentationEvent(this);
 }

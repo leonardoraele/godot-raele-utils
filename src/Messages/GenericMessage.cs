@@ -12,13 +12,15 @@ namespace Raele.GodotUtils.Messages;
 /// </summary>
 public partial class GenericMessage : Message
 {
-	public required Variant Type { get; init; }
+	public required string Type { get; init; }
 	public IReadOnlyDictionary<Variant, Variant> Args { get; init; } = new Dictionary<Variant, Variant>();
 
 	protected override IEnumerable<KeyValuePair<Variant, Variant>> _GetDetails()
 		=> base._GetDetails()
 			.Concat(this.Args);
 
+	protected override void _Publish()
+		=> MessageBus.Singleton.Dispatch(this);
 	public override string ToString()
 		=> $"{nameof(Message)} \"{this.Type}\" {Json.Stringify(this._GetDetails().ToGodotDictionary())}";
 }

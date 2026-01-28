@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Godot;
 
 namespace Raele.GodotUtils.Extensions;
@@ -12,6 +11,11 @@ public static class GodotObjectExtensionMethods
 	extension(GodotObject self)
 	{
 		public bool IsInstanceValid() => GodotObject.IsInstanceValid(self);
+
+		public Variant GetMetaOrDefault(StringName name, Variant defaultValue = new())
+			=> self.HasMeta(name)
+				? self.GetMeta(name)
+				: defaultValue;
 
 		/// <summary>
 		/// Disconnects a signal from a callable if it is currently connected.

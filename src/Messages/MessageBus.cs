@@ -29,20 +29,11 @@ public partial class MessageBus : Node
 	//==================================================================================================================
 		#endregion
 	//==================================================================================================================
-		#region EXPORTS
-	//==================================================================================================================
-
-	// [Export] public
-
-	//==================================================================================================================
-		#endregion
-	//==================================================================================================================
 		#region FIELDS
 	//==================================================================================================================
 
-	public TimeSpan PresentationEventTimeout = TimeSpan.FromSeconds(10);
-
-	private List<PresentationEvent> PresentationEventQueue = [];
+	public bool DebugEnabled = false;
+	private readonly PresentationEventsState PresentationEvents = new();
 
 	//==================================================================================================================
 		#endregion
@@ -50,7 +41,7 @@ public partial class MessageBus : Node
 		#region COMPUTED PROPERTIES
 	//==================================================================================================================
 
-	public bool IsWaitingPresentation => this.PresentationEventQueue.Count != 0;
+	public IPresentationEventsConfig PresentationEventsConfig => this.PresentationEvents;
 
 	//==================================================================================================================
 		#endregion
@@ -59,8 +50,10 @@ public partial class MessageBus : Node
 	//==================================================================================================================
 
 	[Signal] public delegate void MessagePublishedEventHandler(Message message);
-	[Signal] public delegate void BeforeCommandPublishedEventHandler(Command commnad, GodotCancellationController controller);
+
+	[Signal] public delegate void BeforeCommandPublishedEventHandler(Command commnad);
 	[Signal] public delegate void CommandPublishedEventHandler(Command commnad);
+
 	[Signal] public delegate void PresentationSequenceStartedEventHandler();
 	[Signal] public delegate void PresentationEventStartedEventHandler(PresentationEvent @event);
 	[Signal] public delegate void PresentationEventFinishedEventHandler(PresentationEvent @event);
@@ -72,9 +65,18 @@ public partial class MessageBus : Node
 		#region INTERNAL TYPES
 	//==================================================================================================================
 
-	// public enum Type {
-	// 	Value1,
-	// }
+	public interface IPresentationEventsConfig
+	{
+		public TimeSpan Timeout { get; set; }
+	}
+
+	private partial class PresentationEventsState : GodotObject, IPresentationEventsConfig
+	{
+		public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
+		public readonly HashSet<PresentationEvent> Ongoing = [];
+		public readonly List<PresentationEvent> Queue = [];
+		public bool IsSettled => this.Queue.Count == 0 && this.Ongoing.Count == 0;
+	}
 
 	//==================================================================================================================
 		#endregion
@@ -82,20 +84,12 @@ public partial class MessageBus : Node
 		#region OVERRIDES & VIRTUALS
 	//==================================================================================================================
 
-	// public override string[] _GetConfigurationWarnings()
-	// 	=> (base._GetConfigurationWarnings() ?? [])
-	// 		.AppendIf(false "This node is not configured correctly. Did you forget to assign a required field?")
-	// 		.ToArray();
-
-	// public override void _ValidateProperty(Godot.Collections.Dictionary property)
-	// {
-	// 	base._ValidateProperty(property);
-	// 	switch (property["name"].AsString())
-	// 	{
-	// 		case nameof():
-	// 			break;
-	// 	}
-	// }
+	public override void _Ready()
+	{
+		base._Ready();
+		if (this.DebugEnabled)
+			this.MessagePublished += message => this.DebugLog($"⚡ {message}", message.MessageId);
+	}
 
 	//==================================================================================================================
 		#endregion
@@ -104,35 +98,7 @@ public partial class MessageBus : Node
 	//==================================================================================================================
 
 	public void Dispatch(Message message)
-	{
-		this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.MessagePublished, message);
-	}
-
-	public void DispatchPresentationEvent(PresentationEvent @event)
-	{
-		this.Dispatch(@event);
-		if (!this.IsWaitingPresentation)
-		{
-			this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.PresentationSequenceStarted);
-			this.CallDeferred(MethodName.ProcessPresentationEvent, @event);
-		}
-		this.PresentationEventQueue.Add(@event);
-	}
-
-	private async void ProcessPresentationEvent(PresentationEvent @event)
-	{
-		this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.PresentationEventStarted, @event);
-		try
-			{ await @event.Completed.WaitAsync(PresentationEventTimeout); }
-		catch (TimeoutException)
-			{ GD.PushWarning($"{nameof(MessageBus)}: {nameof(PresentationEvent)} timed out after {PresentationEventTimeout}. Event: {@event}."); }
-		this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.PresentationEventFinished, @event);
-		this.PresentationEventQueue.RemoveAt(0);
-		if (this.PresentationEventQueue.Count > 0)
-			this.CallDeferred(MethodName.ProcessPresentationEvent, this.PresentationEventQueue.First());
-		else
-			this.EmitSignalPresentationSequenceFinished();
-	}
+		=> this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.MessagePublished, message);
 
 	public void DispatchCommand(Command command)
 	{
@@ -142,12 +108,56 @@ public partial class MessageBus : Node
 
 	private void ProcessCommand(Command command)
 	{
-		GodotCancellationController controller = new();
-		this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.BeforeCommandPublished, command, controller);
-		if (controller.IsCancellationRequested)
+		this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.BeforeCommandPublished, command);
+		if (command.Cancelled)
 			return;
 		this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.CommandPublished, command);
 		command.Execute();
+	}
+
+	public void DispatchPresentationEvent(PresentationEvent @event)
+	{
+		this.Dispatch(@event);
+		lock (this.PresentationEvents)
+		{
+			if (this.PresentationEvents.IsSettled)
+			{
+				this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.PresentationSequenceStarted);
+				this.CallDeferred(MethodName.ProcessPresentationEvent, @event);
+			}
+			else if (@event.Parallel && this.PresentationEvents.Queue.Count == 0)
+				this.CallDeferred(MethodName.ProcessPresentationEvent, @event);
+			this.PresentationEvents.Queue.Add(@event);
+		}
+	}
+
+	private async void ProcessPresentationEvent(PresentationEvent @event)
+	{
+		TimeSpan timeout;
+		lock (this.PresentationEvents)
+		{
+			this.PresentationEvents.Queue.Remove(@event);
+			if (this.PresentationEvents.Ongoing.Contains(@event))
+				return;
+			this.PresentationEvents.Ongoing.Add(@event);
+			timeout = this.PresentationEvents.Timeout;
+		}
+		this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.PresentationEventStarted, @event);
+		try
+			{ await @event.Completed.WaitAsync(timeout); }
+		catch (TimeoutException)
+			{ GD.PushWarning($"{nameof(MessageBus)}: {nameof(PresentationEvent)} timed out after {this.PresentationEvents.Timeout}. Event: {@event}."); }
+		this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.PresentationEventFinished, @event);
+		lock (this.PresentationEvents)
+		{
+			this.PresentationEvents.Ongoing.Remove(@event);
+			if (this.PresentationEvents.Ongoing.Count > 0)
+				return;
+			if (this.PresentationEvents.Queue.Count > 0)
+				this.CallDeferred(MethodName.ProcessPresentationEvent, this.PresentationEvents.Queue.First());
+			else
+				this.EmitSignalPresentationSequenceFinished();
+		}
 	}
 
 	//==================================================================================================================
