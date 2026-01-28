@@ -35,7 +35,7 @@ public abstract partial class Command : Message
 			.AppendIf(this.Cancelled, new(nameof(this.Cancelled), this.Cancelled));
 
 	protected override void _Publish()
-		=> MessageBus.Singleton.DispatchCommand(this);
+		=> MessageBus.Singleton.Dispatch(this);
 
 	protected virtual void _Execute() {}
 

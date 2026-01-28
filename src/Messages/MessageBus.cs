@@ -1,6 +1,5 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Threading.Tasks;
 using Godot;
 using Raele.GodotUtils.Extensions;
 
@@ -33,7 +32,7 @@ public partial class MessageBus : Node
 	//==================================================================================================================
 
 	public bool DebugEnabled = false;
-	private readonly PresentationEventsState PresentationEvents = new();
+	// private readonly PresentationEventsState _PresentationEvents = new();
 
 	//==================================================================================================================
 		#endregion
@@ -41,7 +40,7 @@ public partial class MessageBus : Node
 		#region COMPUTED PROPERTIES
 	//==================================================================================================================
 
-	public IPresentationEventsConfig PresentationEventsConfig => this.PresentationEvents;
+	// public IPublicPresentationEventsState PresentationEvents => this._PresentationEvents;
 
 	//==================================================================================================================
 		#endregion
@@ -54,10 +53,10 @@ public partial class MessageBus : Node
 	[Signal] public delegate void BeforeCommandPublishedEventHandler(Command commnad);
 	[Signal] public delegate void CommandPublishedEventHandler(Command commnad);
 
-	[Signal] public delegate void PresentationSequenceStartedEventHandler();
-	[Signal] public delegate void PresentationEventStartedEventHandler(PresentationEvent @event);
-	[Signal] public delegate void PresentationEventFinishedEventHandler(PresentationEvent @event);
-	[Signal] public delegate void PresentationSequenceFinishedEventHandler();
+	// [Signal] public delegate void PresentationSequenceStartedEventHandler();
+	// [Signal] public delegate void PresentationEventStartedEventHandler(AsyncEvent @event);
+	// [Signal] public delegate void PresentationEventFinishedEventHandler(AsyncEvent @event);
+	// [Signal] public delegate void PresentationSequenceFinishedEventHandler();
 
 	//==================================================================================================================
 		#endregion
@@ -65,18 +64,34 @@ public partial class MessageBus : Node
 		#region INTERNAL TYPES
 	//==================================================================================================================
 
-	public interface IPresentationEventsConfig
-	{
-		public TimeSpan Timeout { get; set; }
-	}
+	// public interface IPublicPresentationEventsState
+	// {
+	// 	public TimeSpan Timeout { get; set; }
+	// 	public void Stop();
+	// 	public Task WaitSettled();
+	// 	public Task StopAndWait();
+	// }
 
-	private partial class PresentationEventsState : GodotObject, IPresentationEventsConfig
-	{
-		public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
-		public readonly HashSet<PresentationEvent> Ongoing = [];
-		public readonly List<PresentationEvent> Queue = [];
-		public bool IsSettled => this.Queue.Count == 0 && this.Ongoing.Count == 0;
-	}
+	// private partial class PresentationEventsState : GodotObject, IPublicPresentationEventsState
+	// {
+	// 	public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
+	// 	public readonly HashSet<AsyncEvent> Ongoing = [];
+	// 	public readonly List<AsyncEvent> Queue = [];
+	// 	public bool IsSettled => this.Queue.Count == 0 && this.Ongoing.Count == 0;
+	// 	public void Stop()
+	// 	{
+	// 		this.Ongoing.ForEach(@event => @event.Cancel());
+	// 		this.Ongoing.Clear();
+	// 		this.Queue.Clear();
+	// 	}
+	// 	public async Task StopAndWait()
+	// 	{
+	// 		this.Stop();
+	// 		await this.WaitSettled();
+	// 	}
+	// 	public async Task WaitSettled()
+	// 		=> await Singleton.ToSignal(Singleton, MessageBus.SignalName.PresentationSequenceFinished);
+	// }
 
 	//==================================================================================================================
 		#endregion
@@ -97,68 +112,85 @@ public partial class MessageBus : Node
 		#region METHODS
 	//==================================================================================================================
 
+	public async IAsyncEnumerable<Message> GetMessageStream(GodotCancellationToken? token = null)
+	{
+		token ??= GodotCancellationToken.None;
+		while(true)
+		{
+			Variant[] args;
+			try
+				{ args = await this.ToSignal(this, SignalName.MessagePublished).ToTask(token); }
+			catch (TaskCanceledException)
+				{ break; }
+			Message message = (Message) args[0].AsGodotObject();
+			yield return message;
+		}
+	}
+
 	public void Dispatch(Message message)
-		=> this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.MessagePublished, message);
-
-	public void DispatchCommand(Command command)
 	{
-		this.Dispatch(command);
-		this.CallDeferred(MethodName.ProcessCommand, command);
+		this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.MessagePublished, message);
+		if (message is Command command)
+			this.DispatchCommand(command);
 	}
 
-	private void ProcessCommand(Command command)
+	private void DispatchCommand(Command command)
 	{
-		this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.BeforeCommandPublished, command);
-		if (command.Cancelled)
-			return;
-		this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.CommandPublished, command);
-		command.Execute();
-	}
-
-	public void DispatchPresentationEvent(PresentationEvent @event)
-	{
-		this.Dispatch(@event);
-		lock (this.PresentationEvents)
+		Callable.From(_DispatchCommand).CallDeferred();
+		void _DispatchCommand()
 		{
-			if (this.PresentationEvents.IsSettled)
-			{
-				this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.PresentationSequenceStarted);
-				this.CallDeferred(MethodName.ProcessPresentationEvent, @event);
-			}
-			else if (@event.Parallel && this.PresentationEvents.Queue.Count == 0)
-				this.CallDeferred(MethodName.ProcessPresentationEvent, @event);
-			this.PresentationEvents.Queue.Add(@event);
-		}
-	}
-
-	private async void ProcessPresentationEvent(PresentationEvent @event)
-	{
-		TimeSpan timeout;
-		lock (this.PresentationEvents)
-		{
-			this.PresentationEvents.Queue.Remove(@event);
-			if (this.PresentationEvents.Ongoing.Contains(@event))
+			this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.BeforeCommandPublished, command);
+			if (command.Cancelled)
 				return;
-			this.PresentationEvents.Ongoing.Add(@event);
-			timeout = this.PresentationEvents.Timeout;
-		}
-		this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.PresentationEventStarted, @event);
-		try
-			{ await @event.Completed.WaitAsync(timeout); }
-		catch (TimeoutException)
-			{ GD.PushWarning($"{nameof(MessageBus)}: {nameof(PresentationEvent)} timed out after {this.PresentationEvents.Timeout}. Event: {@event}."); }
-		this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.PresentationEventFinished, @event);
-		lock (this.PresentationEvents)
-		{
-			this.PresentationEvents.Ongoing.Remove(@event);
-			if (this.PresentationEvents.Ongoing.Count > 0)
-				return;
-			if (this.PresentationEvents.Queue.Count > 0)
-				this.CallDeferred(MethodName.ProcessPresentationEvent, this.PresentationEvents.Queue.First());
-			else
-				this.EmitSignalPresentationSequenceFinished();
+			this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.CommandPublished, command);
+			command.Execute();
 		}
 	}
+
+	// private void DispatchPresentationEvent(AsyncEvent @event)
+	// {
+	// 	this.Dispatch(@event);
+	// 	lock (this._PresentationEvents)
+	// 	{
+	// 		if (this._PresentationEvents.IsSettled)
+	// 		{
+	// 			this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.PresentationSequenceStarted);
+	// 			this.CallDeferred(MethodName.ProcessPresentationEvent, @event);
+	// 		}
+	// 		else if (@event.Parallel && this._PresentationEvents.Queue.Count == 0)
+	// 			this.CallDeferred(MethodName.ProcessPresentationEvent, @event);
+	// 		this._PresentationEvents.Queue.Add(@event);
+	// 	}
+	// }
+
+	// private async void ProcessPresentationEvent(AsyncEvent @event)
+	// {
+	// 	TimeSpan timeout;
+	// 	lock (this._PresentationEvents)
+	// 	{
+	// 		this._PresentationEvents.Queue.Remove(@event);
+	// 		if (this._PresentationEvents.Ongoing.Contains(@event))
+	// 			return;
+	// 		this._PresentationEvents.Ongoing.Add(@event);
+	// 		timeout = this._PresentationEvents.Timeout;
+	// 	}
+	// 	this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.PresentationEventStarted, @event);
+	// 	try
+	// 		{ await @event.Completed.WaitAsync(timeout); }
+	// 	catch (TimeoutException)
+	// 		{ GD.PushWarning($"{nameof(MessageBus)}: {nameof(AsyncEvent)} timed out after {timeout}. Event: {@event}."); }
+	// 	this.CallSafe(GodotObject.MethodName.EmitSignal, SignalName.PresentationEventFinished, @event);
+	// 	lock (this._PresentationEvents)
+	// 	{
+	// 		this._PresentationEvents.Ongoing.Remove(@event);
+	// 		if (this._PresentationEvents.Ongoing.Count > 0)
+	// 			return;
+	// 		if (this._PresentationEvents.Queue.Count > 0)
+	// 			this.CallDeferred(MethodName.ProcessPresentationEvent, this._PresentationEvents.Queue.First());
+	// 		else
+	// 			this.EmitSignalPresentationSequenceFinished();
+	// 	}
+	// }
 
 	//==================================================================================================================
 		#endregion

@@ -17,6 +17,16 @@ public static class GodotObjectExtensionMethods
 				? self.GetMeta(name)
 				: defaultValue;
 
+		public T GetMetaOrDefault<[MustBeVariant] T>(StringName name)
+			=> self.HasMeta(name)
+				? self.GetMeta(name).As<T>()
+				: Variant.GetDefault<T>();
+
+		public T GetMetaOrDefault<[MustBeVariant] T>(StringName name, T defaultValue)
+			=> self.HasMeta(name)
+				? self.GetMeta(name).As<T>()
+				: defaultValue;
+
 		/// <summary>
 		/// Disconnects a signal from a callable if it is currently connected.
 		/// </summary>

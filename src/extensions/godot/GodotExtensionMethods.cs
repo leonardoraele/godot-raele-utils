@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Godot;
 
@@ -14,7 +16,14 @@ public static class GodotExtensionMethods
 
 	extension (SignalAwaiter self)
 	{
-		public async Task ToTask() => await self;
+		public async Task<Variant[]> ToTask()
+			=> await self;
+		public Task<Variant[]> ToTask(GodotCancellationToken token)
+		{
+			TaskCompletionSource<Variant[]> source = new();
+			token.Register(source.SetCanceled);
+			return Task.WhenAny(self.ToTask(), source.Task).Unwrap();
+		}
 	}
 
 	extension<[MustBeVariant] T>(IEnumerable<T> sequence)

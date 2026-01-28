@@ -134,6 +134,8 @@ public static class VariantExtensionMethods
 			: type.IsValueType && typeof(Enum).IsAssignableFrom(type) ? Variant.Type.Int
 			: Variant.Type.Nil;
 
+		public static T GetDefault<[MustBeVariant] T>()
+			=> Variant.GetDefault(Variant.Typeof<T>()).As<T>();
 		public static Variant GetDefault(Variant.Type type)
 			=> type switch
 			{
