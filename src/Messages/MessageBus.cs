@@ -31,7 +31,8 @@ public partial class MessageBus : Node
 		#region FIELDS
 	//==================================================================================================================
 
-	public bool DebugEnabled = false;
+	// TODO Create a way to enable/disable debug logging without having to recompile the project
+	public bool DebugEnabled = true;
 	// private readonly PresentationEventsState _PresentationEvents = new();
 
 	//==================================================================================================================
