@@ -13,12 +13,14 @@ public static class BasisExtensionMethods
 		public Vector3 Left => -self.X;
 		public Vector3 Forward => -self.Z;
 		public Vector3 Back => self.Z;
+		public Basis RotateToward(Vector3 target)
+			=> self.RotateToward(target, float.PositiveInfinity);
 		public Basis RotateToward(Vector3 target, Radians deltaAngle)
 		{
-			Vector3 newBack = self.Forward.RotateToward(target, deltaAngle, self.Up).Normalized() * -1;
-			Vector3 newRight = newBack.Cross(self.Up).Normalized();
-			Vector3 newUp = newBack.Rotated(newRight, Mathf.Pi / 2).Normalized();
-			return new Basis(newRight, newUp, newBack);
+			Vector3 newForward = self.Forward.RotateToward(target, deltaAngle, self.Up).Normalized();
+			Vector3 newRight = newForward.Cross(self.Up, self.Right).Normalized();
+			Vector3 newUp = newForward.Rotated(newRight, Mathf.Pi / 2).Normalized();
+			return new Basis(newRight, newUp, newForward * -1);
 		}
 	}
 }

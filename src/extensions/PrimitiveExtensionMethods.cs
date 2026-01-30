@@ -8,6 +8,10 @@ public static class PrimitiveExtensionMethods
 {
 	extension<T>(T self) where T : struct, IComparable<T>
 	{
+		public T AtMost(T max)
+			=> self.CompareTo(max) > 0 ? max : self;
+		public T AtLeast(T min)
+			=> self.CompareTo(min) < 0 ? min : self;
 		public T Clamped(T min, T max)
 			=> self.CompareTo(min) < 0 ? min
 				: self.CompareTo(max) > 0 ? max

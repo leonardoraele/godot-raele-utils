@@ -4,6 +4,9 @@ namespace Raele.GodotUtils.Structs;
 
 public struct Radians(double VALUE)
 {
+	public static Radians Pi => Mathf.Pi;
+	public static Radians Tau => Mathf.Tau;
+
 	public Degrees ToDegrees()
 		=> Mathf.RadToDeg(this);
 
