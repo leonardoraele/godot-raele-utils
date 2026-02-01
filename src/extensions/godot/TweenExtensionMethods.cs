@@ -7,6 +7,11 @@ public static class TweenExtensionMethods
 {
 	extension(Tween self)
 	{
+		public Tween AddCallbackTweener(Action callback)
+		{
+			self.TweenCallback(Callable.From(callback));
+			return self;
+		}
 		public Tween AddCallbackTweener(Callable callback)
 		{
 			self.TweenCallback(callback);

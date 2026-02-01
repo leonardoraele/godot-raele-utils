@@ -55,6 +55,9 @@ public static class Vector3ExtensionMethods
 			=> self.RotateToward(other, angleDelta).Normalized()
 				* self.Length().MoveToward(other.Length(), lengthDelta);
 
+		public Vector3 RotatedAround(Vector3 other, Vector3 axis, Radians angle)
+			=> (self - other).Rotated(axis, angle) + other;
+
 		public Vector3 Project(Plane plane)
 			=> plane.Project(self);
 
