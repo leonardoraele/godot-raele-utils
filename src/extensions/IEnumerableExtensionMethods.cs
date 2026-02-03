@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Raele.GodotUtils.Extensions;
 
@@ -113,6 +114,30 @@ public static class IEnumerableExtensionMethods
 		public IEnumerable<T> WhereNotNull()
 		{
 			foreach (T? item in self) {
+				if (item != null) {
+					yield return item;
+				}
+			}
+		}
+	}
+
+	extension<T>(IAsyncEnumerable<T> self)
+	{
+		public async Task ForEach(Action<T> action)
+		{
+			await foreach (T item in self) {
+				action(item);
+			}
+		}
+		public async Task ForEach(Func<T, Task> action)
+		{
+			await foreach (T item in self) {
+				await action(item);
+			}
+		}
+		public async IAsyncEnumerable<T> WhereNotNull()
+		{
+			await foreach (T? item in self) {
 				if (item != null) {
 					yield return item;
 				}
