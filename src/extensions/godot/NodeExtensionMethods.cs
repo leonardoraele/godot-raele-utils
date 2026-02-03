@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Godot;
 
@@ -29,31 +27,17 @@ public static class ExtensionMethods
 		public T? GetAncestorOrDefault<T>()
 			=> self.GetAncestors().OfType<T>().FirstOrDefault();
 
-		/// <summary>
-		/// Tries to get the first ancestor of the specified type T from the given node.
-		/// </summary>
-		/// <typeparam name="T">The type of the ancestor node to find.</typeparam>
-		/// <param name="node">The node whose ancestors are to be searched.</param>
-		/// <param name="ancestor">The first ancestor of type T if found; otherwise, null.</param>
-		/// <returns>True if an ancestor of type T is found; otherwise, false.</returns>
-		public bool TryGetAncestor<T>([NotNullWhen(true)] out T? ancestor)
-		{
-			ancestor = self.GetAncestorOrDefault<T>();
-			return ancestor != null;
-		}
-
-		public T RequireAncestor<T>() where T : Node
-			=> self.TryGetAncestor(out T? ancestor)
-				? ancestor
-				: throw new NoNullAllowedException($"Failed to find expected ancestor. Node \"{self.Name}\" ({self.GetType().Name}) must be a descendant of a {typeof(T).Name} node. Node Path: {self.GetPath()}");
-
 		public T? GetChildOrDefault<T>() where T : Node
 			=> self.GetChildren().OfType<T>().FirstOrDefault();
 
-		public bool TryGetChild<T>([NotNullWhen(true)] out T? child) where T : Node
+		public IEnumerable<Node> GetDescendants()
 		{
-			child = self.GetChildOrDefault<T>();
-			return child != null;
+			foreach (Node child in self.GetChildren())
+			{
+				yield return child;
+				foreach (Node descendant in child.GetDescendants())
+					yield return descendant;
+			}
 		}
 	}
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Raele.GodotUtils.Extensions;
 
@@ -19,7 +20,8 @@ public partial class Message : GodotObject
 	// VIRTUALS
 	//=================================================================================================================
 
-	protected virtual IEnumerable<KeyValuePair<Variant, Variant>> _GetDetails() => [];
+	protected virtual IEnumerable<KeyValuePair<Variant, Variant>> _GetDetails()
+		=> this.GetMetaAsDictionary().Select(kv => new KeyValuePair<Variant, Variant>(kv.Key, kv.Value));
 	protected virtual void _Publish()
 		=> MessageBus.Singleton.Dispatch(this);
 

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Godot;
 
 namespace Raele.GodotUtils.Extensions;
@@ -185,6 +187,9 @@ public static class GodotObjectExtensionMethods
 				}));
 			self.Call(methodName, args);
 		}
+
+		public Dictionary<string, Variant> GetMetaAsDictionary()
+			=> self.GetMetaList().ToDictionary(meta => meta.ToString(), meta => self.GetMeta(meta));
 	}
 
 	extension <T>(T self) where T : GodotObject

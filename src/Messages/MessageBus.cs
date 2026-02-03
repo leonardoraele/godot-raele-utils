@@ -17,8 +17,8 @@ public partial class MessageBus : Node
 		{
 			if (field == null)
 			{
-				field = new();
-				Engine.GetSceneTree().Root.AddChild(field);
+				field = new() { Name = nameof(MessageBus) };
+				Engine.GetSceneTree().Root.CallDeferred(Node.MethodName.AddChild, field);
 			}
 			return field;
 		}
