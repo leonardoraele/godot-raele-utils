@@ -18,7 +18,7 @@ public static class BasisExtensionMethods
 		public Basis RotateToward(Vector3 target, Radians deltaAngle)
 		{
 			Vector3 newForward = self.Forward.RotateToward(target, deltaAngle, self.Up).Normalized();
-			Vector3 newRight = newForward.Cross(self.Up, self.Right).Normalized();
+			Vector3 newRight = newForward.Cross(self.Up).DefaultIfZero(Vector3.Right).Normalized();
 			Vector3 newUp = newForward.Rotated(newRight, Mathf.Pi / 2).Normalized();
 			return new Basis(newRight, newUp, newForward * -1);
 		}

@@ -35,10 +35,10 @@ public static class PrimitiveExtensionMethods
 				: 0;
 	}
 
-	extension(bool self)
+	extension<T>(T self) where T : struct, IFloatingPoint<T>
 	{
-		public byte ToInt()
-			=> (byte) (self ? 1 : 0);
+		public T Lerp(T to, T weight)
+			=> self + (to - self) * weight;
 	}
 
 	extension(float self)
@@ -55,5 +55,11 @@ public static class PrimitiveExtensionMethods
 			=> self.Abs() < Mathf.Epsilon;
 		public bool IsEqualApprox(double other)
 			=> (self - other).Abs() < Mathf.Epsilon;
+	}
+
+	extension(bool self)
+	{
+		public byte ToInt()
+			=> (byte) (self ? 1 : 0);
 	}
 }

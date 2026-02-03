@@ -61,21 +61,10 @@ public static class Vector3ExtensionMethods
 		public Vector3 Project(Plane plane)
 			=> plane.Project(self);
 
-		public Vector3 Cross(Vector3 other, Vector3 defaultValue)
-			=> self.Cross(other) is Vector3 cross && !cross.IsZeroApprox()
-				? cross
-				: defaultValue;
-		public Vector3 Cross(Vector3 other, Vector3 ifEqual, Vector3 ifOpossite)
-			=> self.Cross(other, ifEqual, ifOpossite, Vector3.Zero);
-		public Vector3 Cross(Vector3 other, Vector3 ifEqual, Vector3 ifOpossite, Vector3 ifZero)
-			=> self.Cross(other) is Vector3 cross && !cross.IsZeroApprox()
-				? cross
-				: self.Dot(other) switch
-				{
-					> Mathf.Epsilon => ifEqual,
-					< -Mathf.Epsilon => ifOpossite,
-					_ => ifZero,
-				};
+		public Vector3 DefaultIfZero(Vector3 defaultValue)
+			=> self.IsZeroApprox()
+				? defaultValue
+				: self;
 
 		public void Deconstruct(out float x, out float y, out float z)
 		{

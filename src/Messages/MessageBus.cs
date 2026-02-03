@@ -113,9 +113,8 @@ public partial class MessageBus : Node
 		#region METHODS
 	//==================================================================================================================
 
-	public async IAsyncEnumerable<Message> GetMessageStream(GodotCancellationToken? token = null)
+	public async IAsyncEnumerable<Message> GetMessageStream(GodotCancellationToken token)
 	{
-		token ??= GodotCancellationToken.None;
 		while(true)
 		{
 			Variant[] args;
