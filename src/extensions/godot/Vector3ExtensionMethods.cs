@@ -47,6 +47,23 @@ public static class Vector3ExtensionMethods
 				: cross.Normalized();
 			return self.Rotated(axis, Math.Min(delta, angle));
 		}
+		public Vector3 RotateTowardAndBeyond(Vector3 other, Radians delta)
+			=> self.RotateTowardAndBeyond(other, delta, Vector3.Up);
+		public Vector3 RotateTowardAndBeyond(Vector3 other, Radians delta, Vector3 defaultAxis)
+		{
+			if (other.IsZeroApprox())
+				return self;
+			if (delta < 0)
+			{
+				other *= -1;
+				delta *= -1;
+			}
+			Vector3 cross = self.Cross(other);
+			Vector3 axis = cross.IsZeroApprox()
+				? defaultAxis
+				: cross.Normalized();
+			return self.Rotated(axis, delta);
+		}
 
 		/// <summary>
 		/// Rotates and scales a vector toward another vector.
