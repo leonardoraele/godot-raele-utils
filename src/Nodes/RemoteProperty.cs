@@ -23,7 +23,7 @@ public partial class RemoteProperty : Node
 	[Export] public Node? ReferenceNode;
 	[Export] public string ReferenceProperty = "";
 	[Export] public Variant DefaultValue;
-	[Export] public UpdateModeEnum UpdateMode = UpdateModeEnum.ProcessFrames;
+	[Export] public UpdateModeEnum UpdateMode = UpdateModeEnum.IdleFrames;
 	[Export] public int FrameSkipping
 		{ get; set { field = value.AtLeast(0); } }
 		= 0;
@@ -64,7 +64,7 @@ public partial class RemoteProperty : Node
 	//==================================================================================================================
 
 	public enum UpdateModeEnum : sbyte {
-		ProcessFrames = 16,
+		IdleFrames = 16,
 		PhysicsFrames = 32,
 		Timed = 64,
 		Manually = 96,
@@ -117,7 +117,7 @@ public partial class RemoteProperty : Node
 				break;
 			}
 			case nameof(this.FrameSkipping): {
-				if (this.UpdateMode != UpdateModeEnum.ProcessFrames && this.UpdateMode != UpdateModeEnum.PhysicsFrames)
+				if (this.UpdateMode != UpdateModeEnum.IdleFrames && this.UpdateMode != UpdateModeEnum.PhysicsFrames)
 					property["usage"] = (long) PropertyUsageFlags.None;
 				break;
 			}
@@ -132,7 +132,7 @@ public partial class RemoteProperty : Node
 	public override void _Process(double delta)
 	{
 		base._Process(delta);
-		if (this.UpdateMode != UpdateModeEnum.ProcessFrames)
+		if (this.UpdateMode != UpdateModeEnum.IdleFrames)
 		{
 			this.SetProcess(false);
 			return;
