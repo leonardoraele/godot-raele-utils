@@ -43,7 +43,7 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	#region COMPUTED PROPERTIES
 	//==================================================================================================================
 
-	public IActivity? ParentActivity => this.GetAncestorOrDefault<IActivity>();
+	public IActivity? ParentActivity => this.GetFirstAncestorOrDefault<IActivity>();
 
 	//==================================================================================================================
 	#endregion

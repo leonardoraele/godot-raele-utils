@@ -144,4 +144,22 @@ public static class IEnumerableExtensionMethods
 			}
 		}
 	}
+
+	extension<T>(List<T> self)
+	{
+		public List<T> SortChainable(Comparison<T> comparison)
+		{
+			self.Sort(comparison);
+			return self;
+		}
+	}
+
+	extension<T>(T[] self)
+	{
+		public T[] SortInplace(Comparison<T> comparison)
+		{
+			Array.Sort(self, comparison);
+			return self;
+		}
+	}
 }

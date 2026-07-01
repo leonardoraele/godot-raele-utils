@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Godot;
 
@@ -33,6 +34,54 @@ public static class PrimitiveExtensionMethods
 			=> self > T.Zero ? 1
 				: self < T.Zero ? -1
 				: 0;
+	}
+
+	extension<T>(T self) where T : struct, INumber<T>, IShiftOperators<T, int, T>, IBitwiseOperators<T, T, T>
+	{
+		public bool HasBitSet(int index)
+			=> (self & (T.One << index)) != T.Zero;
+		public bool HasAnyBitSet()
+			=> self != T.Zero;
+		public T SetBit(int index, bool value)
+			=> value
+				? self.SetBit(index)
+				: self.UnsetBit(index);
+		public T SetBit(int index)
+			=> self | (T.One << index);
+		public T UnsetBit(int index)
+			=> self & ~(T.One << index);
+		public T ToggleBit(int index)
+			=> self ^ (T.One << index);
+		public T BitUnion(T other)
+			=> self | other;
+		public T BitIntersection(T other)
+			=> self & other;
+		public T BitDifference(T other)
+			=> self & ~other;
+		public T BitSymmetricDifference(T other)
+			=> self ^ other;
+		public T BitFill(int startIndex, int count)
+			=> self | (((T.One << count) - T.One) << startIndex);
+	}
+
+	extension(uint self)
+	{
+		public IEnumerable<int> GetSetBitIndices()
+		{
+			for (int i = 0; i < sizeof(uint) * 8; i++)
+				if (self.HasBitSet(i))
+					yield return i;
+		}
+	}
+
+	extension(ulong self)
+	{
+		public IEnumerable<int> GetSetBitIndices()
+		{
+			for (int i = 0; i < sizeof(ulong) * 8; i++)
+				if (self.HasBitSet(i))
+					yield return i;
+		}
 	}
 
 	extension<T>(T self) where T : struct, IFloatingPoint<T>
