@@ -40,8 +40,12 @@ public static class PrimitiveExtensionMethods
 	{
 		public bool HasBitSet(int index)
 			=> (self & (T.One << index)) != T.Zero;
+		public bool HasAllBitsSet(T mask)
+			=> (self & mask) == mask;
 		public bool HasAnyBitSet()
 			=> self != T.Zero;
+		public bool HasAnyBitSet(T mask)
+			=> (self & mask) != T.Zero;
 		public T SetBit(int index, bool value)
 			=> value
 				? self.SetBit(index)

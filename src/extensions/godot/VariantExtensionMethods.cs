@@ -76,6 +76,37 @@ public static class VariantExtensionMethods
 				_ => self
 			};
 
+		public bool IsTruthy()
+			=> self.VariantType switch
+			{
+				Variant.Type.Nil => false,
+				Variant.Type.Bool => self.AsBool(),
+				Variant.Type.Int => self.AsInt64() != 0,
+				Variant.Type.Float => self.AsDouble() != 0.0,
+				Variant.Type.String => !string.IsNullOrEmpty(self.AsString()),
+				Variant.Type.Vector2 => self.AsVector2() != Vector2.Zero,
+				Variant.Type.Vector2I => self.AsVector2I() != Vector2I.Zero,
+				Variant.Type.Rect2 => self.AsRect2() != new Rect2(),
+				Variant.Type.Rect2I => self.AsRect2I() != new Rect2I(),
+				Variant.Type.Vector3 => self.AsVector3() != Vector3.Zero,
+				Variant.Type.Vector3I => self.AsVector3I() != Vector3I.Zero,
+				Variant.Type.Transform2D => self.AsTransform2D() != Transform2D.Identity,
+				Variant.Type.Vector4 => self.AsVector4() != Vector4.Zero,
+				Variant.Type.Vector4I => self.AsVector4I() != Vector4I.Zero,
+				Variant.Type.Plane => self.AsPlane() != new Plane(),
+				Variant.Type.Quaternion => self.AsQuaternion() != Quaternion.Identity,
+				Variant.Type.Aabb => self.AsAabb() != new Aabb(),
+				Variant.Type.Basis => self.AsBasis() != Basis.Identity,
+				Variant.Type.Transform3D => self.AsTransform3D() != Transform3D.Identity,
+				Variant.Type.Projection => self.AsProjection() != Projection.Identity,
+				Variant.Type.Color => self.AsColor() != Colors.Transparent,
+				Variant.Type.StringName => !string.IsNullOrEmpty(self.AsStringName()),
+				Variant.Type.NodePath => !string.IsNullOrEmpty(self.AsNodePath()),
+				Variant.Type.Rid => self.AsRid().IsValid,
+				Variant.Type.Object => self.AsGodotObject() != null,
+				_ => true
+			};
+
 		public static Variant.Type Typeof<[MustBeVariant] T>()
 			=> Typeof(typeof(T));
 		public static Variant.Type Typeof(Type type)
