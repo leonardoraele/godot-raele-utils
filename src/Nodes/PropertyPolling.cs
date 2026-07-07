@@ -5,7 +5,7 @@ using Raele.GodotUtils.Extensions;
 namespace Raele.GodotUtils;
 
 [Tool][GlobalClass]
-public partial class RemoteProperty : Node
+public partial class PropertyPolling : Node
 {
 	//==================================================================================================================
 		#region STATICS
@@ -19,17 +19,18 @@ public partial class RemoteProperty : Node
 		#region EXPORTS
 	//==================================================================================================================
 
-	[Export] public string ParentProperty = "";
-	[Export] public Node? ReferenceNode;
-	[Export] public string ReferenceProperty = "";
-	[Export] public Variant DefaultValue;
+	[Export] public string ParentProperty
+		{ get; set { field = value; this.UpdateConfigurationWarnings(); } }
+		= "";
+	[Export] public Node? ReferenceNode
+		{ get; set { field = value; this.UpdateConfigurationWarnings(); } }
+	[Export] public string ReferenceProperty
+		{ get; set { field = value; this.UpdateConfigurationWarnings(); } }
+		= "";
 	[Export] public UpdateModeEnum UpdateMode = UpdateModeEnum.IdleFrames;
-	[Export] public int FrameSkipping
-		{ get; set { field = value.AtLeast(0); } }
-		= 0;
-	[Export(PropertyHint.None, "suffix:s")] public float UpdateFrequency
-		{ get; set { field = value.AtLeast(0f); } }
-		= 1f;
+
+	[ExportGroup("Additional Options")]
+	[Export] public ValueMapper? ValueMapper;
 
 	[ExportGroup("Debug", "Debug")]
 	[Export] public bool RunInEditor = false;
@@ -39,9 +40,6 @@ public partial class RemoteProperty : Node
 	//==================================================================================================================
 		#region FIELDS
 	//==================================================================================================================
-
-	private int SkippedFrames = 0;
-	private float UpdateDelay = 0f;
 
 	//==================================================================================================================
 		#endregion
@@ -66,7 +64,6 @@ public partial class RemoteProperty : Node
 	public enum UpdateModeEnum : sbyte {
 		IdleFrames = 16,
 		PhysicsFrames = 32,
-		Timed = 64,
 		Manually = 96,
 	}
 
@@ -76,10 +73,12 @@ public partial class RemoteProperty : Node
 		#region OVERRIDES & VIRTUALS
 	//==================================================================================================================
 
-	// public override string[] _GetConfigurationWarnings()
-	// 	=> (base._GetConfigurationWarnings() ?? [])
-	// 		.AppendIf(false "This node is not configured correctly. Did you forget to assign a required field?")
-	// 		.ToArray();
+	public override string[] _GetConfigurationWarnings()
+		=> (base._GetConfigurationWarnings() ?? [])
+			.AppendIf(this.ParentProperty.IsNullOrWhiteSpace(), "ParentProperty is empty.")
+			.AppendIf(this.ReferenceNode == null, "ReferenceNode is null.")
+			.AppendIf(this.ReferenceProperty.IsNullOrWhiteSpace(), "ReferenceProperty is empty.")
+			.ToArray();
 
 	public override void _ValidateProperty(Godot.Collections.Dictionary property)
 	{
@@ -89,41 +88,33 @@ public partial class RemoteProperty : Node
 			case nameof(this.ParentProperty): {
 				if (this.GetParent() is not Node parent)
 					return;
-				string[] options = parent.GetPropertyList()
+				string options = parent.GetPropertyList()
+					.Where(prop => !prop["usage"].AsPropertyUsageFlags().HasFlag(
+						PropertyUsageFlags.Group
+						| PropertyUsageFlags.Subgroup
+						| PropertyUsageFlags.Category
+					))
 					.Select(prop => prop["name"].AsString())
-					.ToArray();
+					.JoinIntoString(",");
 				property["hint"] = (long) PropertyHint.EnumSuggestion;
-				property["hint_string"] = options.JoinIntoString(",");
-				if (!options.Contains(this.ParentProperty))
-					property["error"] = $"The property '{this.ParentProperty}' does not exist on the parent node.";
+				property["hint_string"] = options;
 				break;
 			}
 			case nameof(this.ReferenceProperty): {
-				if (this.ReferenceNode is not Node reference)
+				if (this.ReferenceNode == null)
 					return;
-				Variant.Type type = this.GetPropertyType();
-				string[] options = reference.GetPropertyList()
+				Variant.Type type = this.GetParentPropertyType();
+				string options = this.ReferenceNode.GetPropertyList()
+					.Where(prop => !prop["usage"].AsPropertyUsageFlags().HasFlag(
+						PropertyUsageFlags.Group
+						| PropertyUsageFlags.Subgroup
+						| PropertyUsageFlags.Category
+					))
 					.Where(prop => prop["type"].AsVariantType().IsConvertibleTo(type))
 					.Select(prop => prop["name"].AsString())
-					.ToArray();
+					.JoinIntoString(",");
 				property["hint"] = (long) PropertyHint.EnumSuggestion;
-				property["hint_string"] = options.JoinIntoString(",");
-				if (!options.Contains(this.ReferenceProperty))
-					property["error"] = $"The property '{this.ReferenceProperty}' does not exist on the reference node or is not compatible with the type '{type}'.";
-				break;
-			}
-			case nameof(this.DefaultValue): {
-				property["usage"] = (long) PropertyUsageFlags.Default | (long) PropertyUsageFlags.NilIsVariant;
-				break;
-			}
-			case nameof(this.FrameSkipping): {
-				if (this.UpdateMode != UpdateModeEnum.IdleFrames && this.UpdateMode != UpdateModeEnum.PhysicsFrames)
-					property["usage"] = (long) PropertyUsageFlags.None;
-				break;
-			}
-			case nameof(this.UpdateFrequency): {
-				if (this.UpdateMode != UpdateModeEnum.Timed)
-					property["usage"] = (long) PropertyUsageFlags.None;
+				property["hint_string"] = options;
 				break;
 			}
 		}
@@ -132,46 +123,15 @@ public partial class RemoteProperty : Node
 	public override void _Process(double delta)
 	{
 		base._Process(delta);
-		if (this.UpdateMode != UpdateModeEnum.IdleFrames)
-		{
-			this.SetProcess(false);
-			return;
-		}
-		if (this.SkippedFrames >= this.FrameSkipping)
-		{
-			this.SkippedFrames = 0;
-			this.ForceUpdateProperty();
-		}
-		else
-			this.SkippedFrames++;
+		if (this.UpdateMode == UpdateModeEnum.IdleFrames)
+			this.UpdateProperty();
 	}
 
 	public override void _PhysicsProcess(double delta)
 	{
 		base._PhysicsProcess(delta);
-		switch (this.UpdateMode)
-		{
-			case UpdateModeEnum.Timed:
-				this.UpdateDelay += (float) delta;
-				if (this.UpdateDelay >= this.UpdateFrequency)
-				{
-					this.UpdateDelay -= this.UpdateFrequency;
-					this.ForceUpdateProperty();
-				}
-				break;
-			case UpdateModeEnum.Manually:
-				if (this.SkippedFrames >= this.FrameSkipping)
-				{
-					this.SkippedFrames = 0;
-					this.ForceUpdateProperty();
-				}
-				else
-					this.SkippedFrames++;
-				break;
-			default:
-				this.SetPhysicsProcess(false);
-				break;
-		}
+		if (this.UpdateMode == UpdateModeEnum.PhysicsFrames)
+			this.UpdateProperty();
 	}
 
 	//==================================================================================================================
@@ -180,18 +140,22 @@ public partial class RemoteProperty : Node
 		#region METHODS
 	//==================================================================================================================
 
-	private Variant.Type GetPropertyType()
+	private Variant.Type GetParentPropertyType()
 		=> this.GetParent()
 			?.GetPropertyList()
 			.FirstOrDefault(prop => prop["name"].AsString() == this.ParentProperty)
 			?["type"].AsVariantType()
 			?? Variant.Type.Nil;
 
-	public void ForceUpdateProperty()
+	public void UpdateProperty()
 	{
 		if (Engine.IsEditorHint() && !this.RunInEditor)
 			return;
-		this.GetParent()?.Set(this.ParentProperty, this.ReferenceNode?.Get(this.ReferenceProperty) ?? this.DefaultValue);
+		Variant? polledVariant = this.ReferenceNode?.GetIndexed(this.ReferenceProperty);
+		if (!polledVariant.HasValue)
+			return;
+		polledVariant = this.ValueMapper?.MapValue(polledVariant.Value) ?? polledVariant.Value;
+		this.GetParent()?.SetIndexed(this.ParentProperty, polledVariant.Value);
 	}
 
 	//==================================================================================================================

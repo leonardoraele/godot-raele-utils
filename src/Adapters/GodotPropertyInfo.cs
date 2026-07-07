@@ -18,13 +18,6 @@ public record GodotPropertyInfo
 	public static Godot.Collections.Array<Godot.Collections.Dictionary> BuildPropertyList(GodotPropertyInfo[] properties)
 		=> properties.Select(ToGodotDictionary).ToGodotArrayT();
 
-	public GodotPropertyInfo()
-		=> this.Dictionary = new();
-	public GodotPropertyInfo(Godot.Collections.Dictionary dict)
-		=> this.Dictionary = dict.Duplicate();
-	public GodotPropertyInfo(GodotPropertyInfo other)
-		=> this.Dictionary = other.Dictionary.Duplicate();
-
 	public static void Set(
 		Godot.Collections.Dictionary dict,
 		string? name = null,
@@ -50,11 +43,18 @@ public record GodotPropertyInfo
 		if (defaultValue.HasValue) dict["default_value"] = defaultValue.Value;
 	}
 
+	public GodotPropertyInfo()
+		=> this.Dictionary = new();
+	public GodotPropertyInfo(Godot.Collections.Dictionary dict)
+		=> this.Dictionary = dict.Duplicate();
+	public GodotPropertyInfo(GodotPropertyInfo other)
+		=> this.Dictionary = other.Dictionary.Duplicate();
+
 	//==================================================================================================================
 	// FIELDS
 	//==================================================================================================================
 
-	public Godot.Collections.Dictionary Dictionary = new();
+	public Godot.Collections.Dictionary Dictionary;
 
 	//==================================================================================================================
 	// COMPUTED PROPERTIES
