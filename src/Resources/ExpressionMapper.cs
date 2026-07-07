@@ -1,9 +1,11 @@
 using System.Linq;
 using Godot;
+using Raele.GodotUtils.Adapters;
 using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils;
 
+[Tool][GlobalClass]
 public partial class ExpressionMapper : ValueMapper
 {
 	// -----------------------------------------------------------------------------------------------------------------
@@ -66,6 +68,14 @@ public partial class ExpressionMapper : ValueMapper
 			case nameof(this.Context):
 				if (!this.ResourceLocalToScene)
 					property["usage"] = PropertyUsageFlags.ReadOnly.Union(PropertyUsageFlags.Editor).As<long>();
+				break;
+			case nameof(this.Variables):
+				GodotPropertyInfo.Set(
+					property,
+					type: Variant.Type.Dictionary,
+					hint: PropertyHint.DictionaryType,
+					hintString: "String;Nil"
+				);
 				break;
 		}
 	}

@@ -156,7 +156,7 @@ public static class IEnumerableExtensionMethods
 
 	extension<T>(T[] self)
 	{
-		public T[] SortInplace(Comparison<T> comparison)
+		public T[] SortChainable(Comparison<T> comparison)
 		{
 			Array.Sort(self, comparison);
 			return self;

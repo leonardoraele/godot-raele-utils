@@ -2,9 +2,9 @@ using System.Linq;
 using Godot;
 using Raele.GodotUtils.Extensions;
 
-namespace Raele.GodotUtils;
+namespace Raele.GodotUtils.Nodes;
 
-[Tool][GlobalClass]
+[Tool][GlobalClass][Icon($"./{nameof(PropertyPolling)}.svg")]
 public partial class PropertyPolling : Node
 {
 	//==================================================================================================================
@@ -23,7 +23,7 @@ public partial class PropertyPolling : Node
 		{ get; set { field = value; this.UpdateConfigurationWarnings(); } }
 		= "";
 	[Export] public Node? ReferenceNode
-		{ get; set { field = value; this.UpdateConfigurationWarnings(); } }
+		{ get; set { field = value; this.NotifyPropertyListChanged(); this.UpdateConfigurationWarnings(); } }
 	[Export] public string ReferenceProperty
 		{ get; set { field = value; this.UpdateConfigurationWarnings(); } }
 		= "";
@@ -32,7 +32,7 @@ public partial class PropertyPolling : Node
 	[ExportGroup("Additional Options")]
 	[Export] public ValueMapper? ValueMapper;
 
-	[ExportGroup("Debug", "Debug")]
+	[ExportGroup("Debug")]
 	[Export] public bool RunInEditor = false;
 
 	//==================================================================================================================
@@ -89,12 +89,13 @@ public partial class PropertyPolling : Node
 				if (this.GetParent() is not Node parent)
 					return;
 				string options = parent.GetPropertyList()
-					.Where(prop => !prop["usage"].AsPropertyUsageFlags().HasFlag(
-						PropertyUsageFlags.Group
-						| PropertyUsageFlags.Subgroup
-						| PropertyUsageFlags.Category
-					))
+					.Where(prop => prop["usage"].AsPropertyUsageFlags() != PropertyUsageFlags.Group
+						&& prop["usage"].AsPropertyUsageFlags() != PropertyUsageFlags.Subgroup
+						&& prop["usage"].AsPropertyUsageFlags() != PropertyUsageFlags.Category
+					)
 					.Select(prop => prop["name"].AsString())
+					.ToArray()
+					.SortChainable(string.Compare)
 					.JoinIntoString(",");
 				property["hint"] = (long) PropertyHint.EnumSuggestion;
 				property["hint_string"] = options;
@@ -105,13 +106,14 @@ public partial class PropertyPolling : Node
 					return;
 				Variant.Type type = this.GetParentPropertyType();
 				string options = this.ReferenceNode.GetPropertyList()
-					.Where(prop => !prop["usage"].AsPropertyUsageFlags().HasFlag(
-						PropertyUsageFlags.Group
-						| PropertyUsageFlags.Subgroup
-						| PropertyUsageFlags.Category
-					))
+					.Where(prop => prop["usage"].AsPropertyUsageFlags() != PropertyUsageFlags.Group
+						&& prop["usage"].AsPropertyUsageFlags() != PropertyUsageFlags.Subgroup
+						&& prop["usage"].AsPropertyUsageFlags() != PropertyUsageFlags.Category
+					)
 					.Where(prop => prop["type"].AsVariantType().IsConvertibleTo(type))
 					.Select(prop => prop["name"].AsString())
+					.ToArray()
+					.SortChainable(string.Compare)
 					.JoinIntoString(",");
 				property["hint"] = (long) PropertyHint.EnumSuggestion;
 				property["hint_string"] = options;

@@ -3,6 +3,7 @@ using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils;
 
+[Tool][GlobalClass]
 public partial class NumberMapper : ValueMapper
 {
 	// -----------------------------------------------------------------------------------------------------------------

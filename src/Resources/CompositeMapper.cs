@@ -1,9 +1,9 @@
 using System.Linq;
 using Godot;
-using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils;
 
+[Tool][GlobalClass]
 public partial class CompositeMapper : ValueMapper
 {
 	// -----------------------------------------------------------------------------------------------------------------
