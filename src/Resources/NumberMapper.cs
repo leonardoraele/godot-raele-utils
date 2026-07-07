@@ -17,6 +17,11 @@ public partial class NumberMapper : ValueMapper
 
 	[Export] public bool Absolute = false;
 
+	[ExportGroup("Clamp", "Clamp")]
+	[Export(PropertyHint.GroupEnable)] public bool ClampEnabled = false;
+	[Export] public float ClampMin = float.NegativeInfinity;
+	[Export] public float ClampMax = float.PositiveInfinity;
+
 	[ExportGroup("Wrap", "Wrap")]
 	[Export(PropertyHint.GroupEnable)] public bool WrapEnabled = false;
 	[Export] public float WrapMin = 0;
@@ -111,6 +116,8 @@ public partial class NumberMapper : ValueMapper
 			return value;
 		if (this.Absolute)
 			value = Mathf.Abs(value.AsDouble());
+		if (this.ClampEnabled)
+			value = Mathf.Clamp(value.AsDouble(), this.ClampMin, this.ClampMax);
 		if (this.WrapEnabled)
 			value = Mathf.Wrap(value.AsDouble(), this.WrapMin, this.WrapMax);
 		if (this.RemapEnabled)
