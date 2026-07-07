@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Godot;
 
 namespace Raele.GodotUtils.Extensions;
@@ -9,6 +10,9 @@ public static class GodotObjectExtensionMethods
 {
 	private const double DEFAULT_DEBOUNCE_DELAY_SECONDS = 0.200d;
 	private const double DEFAULT_THROTTLE_DELAY_SECONDS = 0.200d;
+
+	private static ConditionalWeakTable<GodotObject, Dictionary<string, Tween>> DebouncedCallsTable = new();
+	private static ConditionalWeakTable<GodotObject, Dictionary<string, Tween>> ThrottledCallsTable = new();
 
 	extension(GodotObject self)
 	{
@@ -109,37 +113,33 @@ public static class GodotObjectExtensionMethods
 			=> self._CallDebounced(methodName, DEFAULT_DEBOUNCE_DELAY_SECONDS, ignoreTimeScale: true, args);
 		public void CallDebounced(StringName methodName, params Variant[] args)
 			=> self._CallDebounced(methodName, DEFAULT_DEBOUNCE_DELAY_SECONDS, ignoreTimeScale: false, args);
+
 		/// <summary>
 		/// Calls a method on the GodotObject after a delay, resetting the delay if called again before the timer
 		/// elapses.
 		/// </summary>
 		private void _CallDebounced(
-			StringName methodName,
-			double delaySeconds = DEFAULT_DEBOUNCE_DELAY_SECONDS,
-			bool ignoreTimeScale = false,
-			params Variant[] args
+			string methodName,
+			double delaySeconds,
+			bool ignoreTimeScale,
+			Variant[] args
 		)
 		{
-			string metaProp = $"{nameof(Raele)}_{nameof(GodotUtils)}_{nameof(_CallDebounced)}";
-			Tween? tween = self.HasMeta(metaProp)
-				? self.GetMeta(metaProp).AsGodotObject() as Tween
-				: null;
+			Dictionary<string, Tween> tweens = DebouncedCallsTable.GetOrCreateValue(self);
+			Tween? tween = tweens.GetValueOrDefault(methodName);
 			tween?.Kill();
-			tween = self is Node node
+			tweens[methodName] = tween = self is Node node
 				? node.CreateTween()
 				: Engine.GetSceneTree().CreateTween();
-			self.SetMeta(metaProp, tween);
 			tween.SetIgnoreTimeScale(ignoreTimeScale)
-				.SetProcessMode(Tween.TweenProcessMode.Physics)
+				.SetProcessMode(ignoreTimeScale ? Tween.TweenProcessMode.Physics : Tween.TweenProcessMode.Idle)
 				.AddIntervalTweener(delaySeconds)
 				.AddCallbackTweener(Callable.From(() =>
 				{
 					tween.Kill();
+					tweens.Remove(methodName);
 					if (self.IsInstanceValid())
-					{
-						self.RemoveMeta(metaProp);
 						self.Call(methodName, args);
-					}
 				}));
 		}
 
@@ -166,24 +166,20 @@ public static class GodotObjectExtensionMethods
 			params Variant[] args
 		)
 		{
-			string metaProp = $"{nameof(Raele)}_{nameof(GodotUtils)}_{nameof(_CallDebounced)}";
-			Tween? tween = self.HasMeta(metaProp)
-				? self.GetMeta(metaProp).AsGodotObject() as Tween
-				: null;
+			Dictionary<string, Tween> tweens = ThrottledCallsTable.GetOrCreateValue(self);
+			Tween? tween = tweens.GetValueOrDefault(methodName);
 			if (tween?.IsValid() == true)
 				return;
-			tween = self is Node node
+			tweens[methodName] = tween = self is Node node
 				? node.CreateTween()
 				: Engine.GetSceneTree().CreateTween();
-			self.SetMeta(metaProp, tween);
 			tween.SetIgnoreTimeScale(ignoreTimeScale)
-				.SetProcessMode(Tween.TweenProcessMode.Physics)
+				.SetProcessMode(ignoreTimeScale ? Tween.TweenProcessMode.Physics : Tween.TweenProcessMode.Idle)
 				.AddIntervalTweener(delaySeconds)
 				.AddCallbackTweener(Callable.From(() =>
 				{
 					tween.Kill();
-					if (self.IsInstanceValid())
-						self.RemoveMeta(metaProp);
+					tweens.Remove(methodName);
 				}));
 			self.Call(methodName, args);
 		}

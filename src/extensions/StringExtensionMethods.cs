@@ -35,4 +35,9 @@ public static class StringExtensionMethods
 		public string BBCBgColor(string color) => $"[bgcolor={color}]{str}[/bgcolor]";
 		public string BBCFgColor(string color) => $"[fgcolor={color}]{str}[/fgcolor]";
 	}
+
+	extension(string? str)
+	{
+		public bool IsNullOrWhiteSpace() => string.IsNullOrWhiteSpace(str);
+	}
 }
