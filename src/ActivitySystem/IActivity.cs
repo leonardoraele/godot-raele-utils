@@ -33,6 +33,8 @@ public interface IActivity
 
 	public event Action<string, Variant, GodotCancellationController> EventWillStart;
 	public event Action<string, Variant> EventStarted;
+	public event Action<float> EventProcessActive;
+	public event Action<float> EventPhysicsProcessActive;
 	public event Action<string, Variant, GodotCancellationController> EventWillFinish;
 	public event Action<string, Variant> EventFinished;
 

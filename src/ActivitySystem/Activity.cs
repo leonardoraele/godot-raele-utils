@@ -1,6 +1,5 @@
 using System;
 using Godot;
-using Godot.Collections;
 using Raele.GodotUtils.Extensions;
 
 namespace Raele.GodotUtils.ActivitySystem;
@@ -18,21 +17,19 @@ public partial class Activity : Node, IActivity
 		#region EXPORTS
 	//==================================================================================================================
 
-	[ExportGroup("Set Process Mode Per State", "ProcessMode")]
-	[Export(PropertyHint.GroupEnable)] public bool ProcessModeManagedEnabled
-		{ get; set { field = value; this.NotifyPropertyListChanged(); } }
+	[Export] public bool Enabled
+	{
+		get;
+		set {
+			field = value;
+			if (!field && this.IsActive)
+				this.ForceFinish();
+		}
+	}
 		= true;
-	[Export] public ProcessModeEnum ProcessModeWhenActive
-		{ get; set { field = value; this.RefreshProcessMode(); } }
-		= ProcessModeEnum.Inherit;
-	[Export] public ProcessModeEnum ProcessModeWhenInactive
-		{ get; set { field = value; this.RefreshProcessMode(); } }
-		= ProcessModeEnum.Disabled;
 
-	[ExportGroup("Debug", "Debug")]
-	[Export] public bool DebugInactiveInEditor
-		{ get; set { field = value; this.RefreshProcessMode(); } }
-		= false;
+	[ExportGroup("Options")]
+	[Export] public DisableModeEnum DisableMode = DisableModeEnum.Abort;
 
 	//==================================================================================================================
 		#endregion
@@ -49,6 +46,12 @@ public partial class Activity : Node, IActivity
 		#region COMPUTED PROPERTIES
 	//==================================================================================================================
 
+	public bool CanStart => this.Enabled && !this.IsActive && this.DisableMode switch
+	{
+		DisableModeEnum.Pause => true,
+		DisableModeEnum.Abort or _ => this.CanProcess(),
+	};
+
 	//==================================================================================================================
 		#endregion
 	//==================================================================================================================
@@ -57,27 +60,39 @@ public partial class Activity : Node, IActivity
 
 	event Action<string, Variant, GodotCancellationController> IActivity.EventWillStart
 	{
-		add => Connect(nameof(WillStart), value.ToCallable());
-		remove => Disconnect(nameof(WillStart), value.ToCallable());
+		add => Connect(SignalName.WillStart, value.ToCallable());
+		remove => Disconnect(SignalName.WillStart, value.ToCallable());
 	}
 	event Action<string, Variant> IActivity.EventStarted
 	{
-		add => Connect(nameof(Started), value.ToCallable());
-		remove => Disconnect(nameof(Started), value.ToCallable());
+		add => Connect(SignalName.Started, value.ToCallable());
+		remove => Disconnect(SignalName.Started, value.ToCallable());
+	}
+	event Action<float> IActivity.EventProcessActive
+	{
+		add => Connect(SignalName.ProcessActive, value.ToCallable());
+		remove => Disconnect(SignalName.ProcessActive, value.ToCallable());
+	}
+	event Action<float> IActivity.EventPhysicsProcessActive
+	{
+		add => Connect(SignalName.PhysicsProcessActive, value.ToCallable());
+		remove => Disconnect(SignalName.PhysicsProcessActive, value.ToCallable());
 	}
 	event Action<string, Variant, GodotCancellationController> IActivity.EventWillFinish
 	{
-		add => Connect(nameof(WillFinish), value.ToCallable());
-		remove => Disconnect(nameof(WillFinish), value.ToCallable());
+		add => Connect(SignalName.WillFinish, value.ToCallable());
+		remove => Disconnect(SignalName.WillFinish, value.ToCallable());
 	}
 	event Action<string, Variant> IActivity.EventFinished
 	{
-		add => Connect(nameof(Finished), value.ToCallable());
-		remove => Disconnect(nameof(Finished), value.ToCallable());
+		add => Connect(SignalName.Finished, value.ToCallable());
+		remove => Disconnect(SignalName.Finished, value.ToCallable());
 	}
 
 	[Signal] public delegate void WillStartEventHandler(string mode, Variant argument, GodotCancellationController controller);
 	[Signal] public delegate void StartedEventHandler(string mode, Variant argument);
+	[Signal] public delegate void ProcessActiveEventHandler(double delta);
+	[Signal] public delegate void PhysicsProcessActiveEventHandler(double delta);
 	[Signal] public delegate void WillFinishEventHandler(string reason, Variant details, GodotCancellationController controller);
 	[Signal] public delegate void FinishedEventHandler(string reason, Variant details);
 
@@ -87,9 +102,17 @@ public partial class Activity : Node, IActivity
 	#region INTERNAL TYPES
 	//==================================================================================================================
 
-	// public enum Type {
-	// 	Value1,
-	// }
+	public enum DisableModeEnum {
+		/// <summary>
+		/// The activity will not start if the node is disabled. The <see cref="Enabled"/> property will be ignored.
+		/// </summary>
+		Abort = 16,
+		/// <summary>
+		/// The activity will start as normal, but will not emit ProcessActive and PhysicsProcessActive signals while
+		/// the node remains disabled. The activity duration timer will be paused.
+		/// </summary>
+		Pause = 32,
+	}
 
 	//==================================================================================================================
 	#endregion
@@ -97,62 +120,50 @@ public partial class Activity : Node, IActivity
 	#region OVERRIDES & VIRTUALS
 	//==================================================================================================================
 
-	public override void _ValidateProperty(Dictionary property)
-	{
-		base._ValidateProperty(property);
-		if (
-			property["name"].AsString() == Node.PropertyName.ProcessMode.ToString()
-			&& this.ProcessModeManagedEnabled
-		)
-		{
-			property["usage"] = (long) PropertyUsageFlags.Editor | (long) PropertyUsageFlags.ReadOnly;
-			property["comment"] = $"The {Node.PropertyName.ProcessMode} property is managed by the {nameof(Activity)} script.";
-		}
-	}
+	// public override void _ValidateProperty(Dictionary property)
+	// {
+	// 	base._ValidateProperty(property);
+	// }
 
-	public override void _EnterTree()
-	{
-		base._EnterTree();
-		if (Engine.IsEditorHint())
-			return;
-		this.GetTree().ProcessFrame += this._ActivityProcessAlways;
-		this.GetTree().PhysicsFrame += this._ActivityPhysicsProcessAlways;
-	}
+	// public override void _EnterTree()
+	// {
+	// 	base._EnterTree();
+	// }
 
-	public override void _ExitTree()
-	{
-		base._ExitTree();
-		if (Engine.IsEditorHint())
-			return;
-		this.GetTree().ProcessFrame -= this._ActivityProcessAlways;
-		this.GetTree().PhysicsFrame -= this._ActivityPhysicsProcessAlways;
-	}
+	// public override void _ExitTree()
+	// {
+	// 	base._ExitTree();
+	// }
 
-	public override void _Ready()
-	{
-		base._Ready();
-		if (Engine.IsEditorHint())
-		{
-			this.SetProcess(false);
-			this.SetPhysicsProcess(false);
-			return;
-		}
-		this.ForceFinish();
-	}
+	// public override void _Ready()
+	// {
+	// 	base._Ready();
+	// }
 
 	public override void _Process(double delta)
 	{
+		base._Process(delta);
 		if (Engine.IsEditorHint())
 		{
 			this.SetProcess(false);
 			return;
 		}
-		if (this.IsActive)
-			this._ActivityProcess(delta);
+		if (!this.IsActive)
+			return;
+		this.ActiveTimeSpan += TimeSpan.FromSeconds(delta);
+		try
+		{
+			this._ActivityProcessActive(delta);
+		}
+		finally
+		{
+			this.EmitSignalProcessActive(delta);
+		}
 	}
 
 	public override void _PhysicsProcess(double delta)
 	{
+		base._PhysicsProcess(delta);
 		if (Engine.IsEditorHint())
 		{
 			this.SetPhysicsProcess(false);
@@ -160,16 +171,20 @@ public partial class Activity : Node, IActivity
 		}
 		if (!this.IsActive)
 			return;
-		this.ActiveTimeSpan += TimeSpan.FromSeconds(delta);
-		this._ActivityPhysicsProcess(delta);
+		try
+		{
+			this._ActivityPhysicsProcessActive(delta);
+		}
+		finally
+		{
+			this.EmitSignalPhysicsProcessActive(delta);
+		}
 	}
 
 	protected virtual void _ActivityWillStart(string mode, Variant argument, GodotCancellationController controller) { }
 	protected virtual void _ActivityStarted(string mode, Variant argument) { }
-	protected virtual void _ActivityProcess(double delta) { }
-	protected virtual void _ActivityPhysicsProcess(double delta) { }
-	protected virtual void _ActivityProcessAlways() { }
-	protected virtual void _ActivityPhysicsProcessAlways() { }
+	protected virtual void _ActivityProcessActive(double delta) { }
+	protected virtual void _ActivityPhysicsProcessActive(double delta) { }
 	protected virtual void _ActivityWillFinish(string reason, Variant details, GodotCancellationController controller) { }
 	protected virtual void _ActivityFinished(string reason, Variant details) { }
 
@@ -180,25 +195,12 @@ public partial class Activity : Node, IActivity
 	//==================================================================================================================
 
 	/// <summary>
-	/// Returns the same as <see cref="CanProcess"/> would if this activity is activated.
+	/// Emits the WillStart signal. If no handler aborts the activity, it will be started and the Started signal will be
+	/// emitted.
 	/// </summary>
-	public bool TestActiveStateCanProcess()
-		=> (this.IsActive || !this.ProcessModeManagedEnabled)
-			? this.CanProcess()
-			: this.ProcessModeWhenActive switch
-			{
-				ProcessModeEnum.Always => true,
-				ProcessModeEnum.Pausable => !this.GetTree().Paused,
-				ProcessModeEnum.WhenPaused => this.GetTree().Paused,
-				ProcessModeEnum.Inherit => this.GetParent()?.CanProcess() == true,
-				_ => false
-			};
-
-	//------------------------------------------------------------------------------------------------------------------
-
 	public void Start(string mode = "", Variant payload = new Variant())
 	{
-		if (this.IsActive)
+		if (!this.CanStart)
 			return;
 		if (!this.TestWillStart(mode, payload))
 			return;
@@ -221,17 +223,18 @@ public partial class Activity : Node, IActivity
 	/// </summary>
 	public void ForceStart(string mode = "", Variant argument = new Variant())
 	{
-		if (!this.IsActive)
-			this.CallDeferred(MethodName.OnAfterStarted, mode, argument);
+		if (!this.CanStart)
+			return;
 		this.IsActive = true;
 		this.ActiveTimeSpan = TimeSpan.Zero;
-		this.RefreshProcessMode();
-	}
-
-	private void OnAfterStarted(string mode, Variant argument)
-	{
-		this._ActivityStarted(mode, argument);
-		this.EmitSignalStarted(mode, argument);
+		try
+		{
+			this._ActivityStarted(mode, argument);
+		}
+		finally
+		{
+			this.CallDebounced(GodotObject.MethodName.EmitSignal, SignalName.Started, mode, argument);
+		}
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -261,29 +264,18 @@ public partial class Activity : Node, IActivity
 	/// </summary>
 	public void ForceFinish(string reason = "", Variant details = new Variant())
 	{
-		if (this.IsActive)
-			this.CallDeferred(MethodName.OnAfterFinished, reason, details);
+		if (!this.IsActive)
+			return;
 		this.IsActive = false;
 		this.ActiveTimeSpan = TimeSpan.Zero;
-		this.RefreshProcessMode();
-	}
-
-	private void OnAfterFinished(string reason, Variant details)
-	{
-		this._ActivityFinished(reason, details);
-		this.EmitSignalFinished(reason, details);
-	}
-	private void RefreshProcessMode()
-	{
-		if (!this.ProcessModeManagedEnabled)
-			return;
-		this.ProcessMode = Engine.IsEditorHint()
-			? this.DebugInactiveInEditor
-				? this.ProcessModeWhenInactive
-				: this.ProcessModeWhenActive
-			: this.IsActive
-				? this.ProcessModeWhenActive
-				: this.ProcessModeWhenInactive;
+		try
+		{
+			this._ActivityFinished(reason, details);
+		}
+		finally
+		{
+			this.CallDebounced(GodotObject.MethodName.EmitSignal, SignalName.Finished, reason, details);
+		}
 	}
 
 	//==================================================================================================================
