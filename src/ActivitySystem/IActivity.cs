@@ -16,6 +16,7 @@ namespace Raele.GodotUtils.ActivitySystem;
 /// and <see cref="ProcessModeWhenInactive"/> properties. You can check whether the activity is active and for how long
 /// using the <see cref="IsActive"/> and <see cref="ActiveTimeSpan"/> properties.
 /// </summary>
+[Obsolete]
 public interface IActivity
 {
 	//==================================================================================================================

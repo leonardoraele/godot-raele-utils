@@ -5,7 +5,7 @@ using Raele.GodotUtils.Extensions;
 namespace Raele.GodotUtils.ActivitySystem;
 
 [Tool]
-public partial class Activity : Node, IActivity
+public partial class Activity : Node
 {
 	//==================================================================================================================
 		#region STATICS
@@ -27,6 +27,10 @@ public partial class Activity : Node, IActivity
 		}
 	}
 		= true;
+
+	[ExportGroup("Use Finish Strategy", "Finish")]
+	[Export(PropertyHint.GroupEnable)] public bool FinishStrategyEnabled = false;
+	[Export] public TimingStrategy? FinishStrategy;
 
 	[ExportGroup("Options")]
 	[Export] public DisableModeEnum DisableMode = DisableModeEnum.Abort;
@@ -57,37 +61,6 @@ public partial class Activity : Node, IActivity
 	//==================================================================================================================
 		#region EVENTS & SIGNALS
 	//==================================================================================================================
-
-	event Action<string, Variant, GodotCancellationController> IActivity.EventWillStart
-	{
-		add => Connect(SignalName.WillStart, value.ToCallable());
-		remove => Disconnect(SignalName.WillStart, value.ToCallable());
-	}
-	event Action<string, Variant> IActivity.EventStarted
-	{
-		add => Connect(SignalName.Started, value.ToCallable());
-		remove => Disconnect(SignalName.Started, value.ToCallable());
-	}
-	event Action<float> IActivity.EventProcessActive
-	{
-		add => Connect(SignalName.ProcessActive, value.ToCallable());
-		remove => Disconnect(SignalName.ProcessActive, value.ToCallable());
-	}
-	event Action<float> IActivity.EventPhysicsProcessActive
-	{
-		add => Connect(SignalName.PhysicsProcessActive, value.ToCallable());
-		remove => Disconnect(SignalName.PhysicsProcessActive, value.ToCallable());
-	}
-	event Action<string, Variant, GodotCancellationController> IActivity.EventWillFinish
-	{
-		add => Connect(SignalName.WillFinish, value.ToCallable());
-		remove => Disconnect(SignalName.WillFinish, value.ToCallable());
-	}
-	event Action<string, Variant> IActivity.EventFinished
-	{
-		add => Connect(SignalName.Finished, value.ToCallable());
-		remove => Disconnect(SignalName.Finished, value.ToCallable());
-	}
 
 	[Signal] public delegate void WillStartEventHandler(string mode, Variant argument, GodotCancellationController controller);
 	[Signal] public delegate void StartedEventHandler(string mode, Variant argument);
@@ -233,7 +206,7 @@ public partial class Activity : Node, IActivity
 		}
 		finally
 		{
-			this.CallDebounced(GodotObject.MethodName.EmitSignal, SignalName.Started, mode, argument);
+			this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.Started, mode, argument);
 		}
 	}
 
@@ -274,7 +247,7 @@ public partial class Activity : Node, IActivity
 		}
 		finally
 		{
-			this.CallDebounced(GodotObject.MethodName.EmitSignal, SignalName.Finished, reason, details);
+			this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.Finished, reason, details);
 		}
 	}
 

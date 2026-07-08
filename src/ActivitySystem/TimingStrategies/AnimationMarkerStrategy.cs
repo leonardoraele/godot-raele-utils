@@ -69,7 +69,7 @@ public partial class AnimationMarkerStrategy : TimingStrategy
 				break;
 		}
 	}
-	public override bool Test(IActivity? activity)
+	public override bool Test(Activity? activity)
 		=> (this.AnimationPlayerObject?.CurrentAnimationPosition ?? 0d)
 				>= this.MarkerTime - Mathf.Epsilon;
 }

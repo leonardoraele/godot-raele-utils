@@ -42,6 +42,6 @@ public partial class AfterDurationStrategy : TimingStrategy
 		=> property.ToString() == nameof(Duration) && this.Duration != DEFAULT_DURATION;
 	public override Variant _PropertyGetRevert(StringName property)
 		=> property.ToString() == nameof(Duration) ? DEFAULT_DURATION : Variant.NULL;
-	public override bool Test(IActivity? activity)
+	public override bool Test(Activity? activity)
 		=> activity?.ActiveTimeSpan.TotalSeconds >= this.Duration;
 }

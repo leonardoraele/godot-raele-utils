@@ -4,7 +4,7 @@ using Raele.GodotUtils.Extensions;
 namespace Raele.GodotUtils.ActivitySystem;
 
 [Tool]
-public partial class ActivityComponent : Activity, IActivityComponent
+public partial class ActivityComponent : Activity
 {
 	//==================================================================================================================
 	#region STATICS
@@ -16,14 +16,9 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	#region EXPORTS
 	//==================================================================================================================
 
-	[Export] public bool Enabled = true;
-
 	[ExportGroup("Use Start Strategy", "Start")]
 	[Export(PropertyHint.GroupEnable)] public bool StartStrategyEnabled = false;
 	[Export] public TimingStrategy? StartStrategy;
-	[ExportGroup("Use Finish Strategy", "Finish")]
-	[Export(PropertyHint.GroupEnable)] public bool FinishStrategyEnabled = false;
-	[Export] public TimingStrategy? FinishStrategy;
 
 	// TODO
 	// [ExportGroup("Options")]
@@ -43,7 +38,7 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	#region COMPUTED PROPERTIES
 	//==================================================================================================================
 
-	public IActivity? ParentActivity => this.GetFirstAncestorOrDefault<IActivity>();
+	public Activity? ParentActivity => this.GetFirstAncestorOrDefault<Activity>();
 
 	//==================================================================================================================
 	#endregion
@@ -60,19 +55,19 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	public enum StateEnum : sbyte
 	{
 		/// <summary>
-		/// The owner ability is not active.
+		/// The owner activity is not active.
 		/// </summary>
 		Inactive = 0,
 		/// <summary>
-		/// The ability has started but this ability component has not started itself yet.
+		/// The activity has started but this activity component has not started itself yet.
 		/// </summary>
 		StandBy = 32,
 		/// <summary>
-		/// The ability component is active.
+		/// The activity component is active.
 		/// </summary>
 		Started = 64,
 		/// <summary>
-		/// The ability component has finished its activity and is now waiting for the owner ability to finish before it
+		/// The activity component has finished its activity and is now waiting for the owner activity to finish before it
 		/// can be activated again.
 		/// </summary>
 		Finished = 96,
@@ -89,46 +84,37 @@ public partial class ActivityComponent : Activity, IActivityComponent
 		base._EnterTree();
 		if (Engine.IsEditorHint())
 			return;
-		this.ParentActivity?.EventWillStart += this.OnParentActivityWillStart;
-		this.ParentActivity?.EventStarted += this.OnParentActivityStarted;
-		this.ParentActivity?.EventWillFinish += this.OnParentActivityWillFinish;
-		this.ParentActivity?.EventFinished += this.OnParentActivityFinished;
+		this.ParentActivity?.WillStart += this.OnParentActivityWillStart;
+		this.ParentActivity?.Started += this.OnParentActivityStarted;
+		this.ParentActivity?.WillFinish += this.OnParentActivityWillFinish;
+		this.ParentActivity?.Finished += this.OnParentActivityFinished;
 	}
 	public override void _ExitTree()
 	{
 		base._ExitTree();
 		if (Engine.IsEditorHint())
 			return;
-		this.ParentActivity?.EventWillStart -= this.OnParentActivityWillStart;
-		this.ParentActivity?.EventStarted -= this.OnParentActivityStarted;
-		this.ParentActivity?.EventWillFinish -= this.OnParentActivityWillFinish;
-		this.ParentActivity?.EventFinished -= this.OnParentActivityFinished;
+		this.ParentActivity?.WillStart -= this.OnParentActivityWillStart;
+		this.ParentActivity?.Started -= this.OnParentActivityStarted;
+		this.ParentActivity?.WillFinish -= this.OnParentActivityWillFinish;
+		this.ParentActivity?.Finished -= this.OnParentActivityFinished;
 	}
-	protected override void _ActivityPhysicsProcess(double delta)
+
+	protected override void _ActivityProcessActive(double delta)
 	{
-		base._ActivityPhysicsProcess(delta);
+		base._ActivityProcessActive(delta);
 		if (Engine.IsEditorHint())
 			return;
-		if (this.State == StateEnum.Started && this.TestFinishConditions())
+		if (this.TestFinishConditions())
 			this.Finish($"{nameof(ActivityComponent)}.{nameof(this.FinishStrategy)}({this.FinishStrategy?.GetType().Name ?? "null"}).ConditionSatisfied");
 	}
 
-	protected override void _ActivityWillStart(string mode, Variant argument, GodotCancellationController controller)
+	public override void _Process(double delta)
 	{
-		base._ActivityWillStart(mode, argument, controller);
-		if (!this.Enabled)
-			controller.Cancel();
-	}
-
-	protected override void _ActivityPhysicsProcessAlways()
-	{
-		base._ActivityPhysicsProcessAlways();
-		if (
-			this.State == StateEnum.StandBy
-			// Prevents starting if the node wouldn't be able to process (e.g. starting while the game is paused)
-			&& this.TestActiveStateCanProcess()
-			&& this.TestStartConditions()
-		)
+		base._Process(delta);
+		if (Engine.IsEditorHint())
+			return;
+		if (this.TestStartConditions())
 			this.Start();
 	}
 
@@ -158,11 +144,9 @@ public partial class ActivityComponent : Activity, IActivityComponent
 	private void OnParentActivityFinished(string reason, Variant details)
 	{
 		if (this.IsActive)
-		{
 			// No need to update the state here because finishing this component will trigger _ActivityFinished(), which
 			// updates the state accordingly.
 			this.ForceFinish();
-		}
 		else
 			this.State = StateEnum.Inactive;
 		this._ParentActivityFinished(reason, details);
@@ -181,11 +165,16 @@ public partial class ActivityComponent : Activity, IActivityComponent
 
 	private bool TestStartConditions()
 		=> this.Enabled
+			&& this.State == StateEnum.StandBy
+			&& !this.IsActive
 			&& this.ParentActivity?.IsActive == true
 			&& (!this.StartStrategyEnabled || this.StartStrategy?.Test(this.ParentActivity) == true);
+
 	private bool TestFinishConditions()
 		=> !this.Enabled
+			|| !this.IsActive
 			|| this.ParentActivity?.IsActive != true
+			|| this.State != StateEnum.Started
 			|| this.FinishStrategyEnabled && this.FinishStrategy?.Test(this.ParentActivity) == true;
 
 	//==================================================================================================================

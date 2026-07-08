@@ -89,6 +89,6 @@ public partial class ExpressionStrategy : TimingStrategy
 			nameof(Expression) => "",
 			_ => Variant.NULL,
 		};
-	public override bool Test(IActivity? activity)
+	public override bool Test(Activity? activity)
 		=> this.Interpreter.Execute([this.Param], this.Context).AsBool();
 }
