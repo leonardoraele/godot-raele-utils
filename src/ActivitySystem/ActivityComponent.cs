@@ -100,15 +100,6 @@ public partial class ActivityComponent : Activity
 		this.ParentActivity?.Finished -= this.OnParentActivityFinished;
 	}
 
-	protected override void _ActivityProcessActive(double delta)
-	{
-		base._ActivityProcessActive(delta);
-		if (Engine.IsEditorHint())
-			return;
-		if (this.TestFinishConditions())
-			this.Finish($"{nameof(ActivityComponent)}.{nameof(this.FinishStrategy)}({this.FinishStrategy?.GetType().Name ?? "null"}).ConditionSatisfied");
-	}
-
 	public override void _Process(double delta)
 	{
 		base._Process(delta);
@@ -116,12 +107,15 @@ public partial class ActivityComponent : Activity
 			return;
 		if (this.TestStartConditions())
 			this.Start();
+		if (this.State == StateEnum.Started && this.ParentActivity?.IsActive != true)
+			this.Finish();
 	}
 
 	protected override void _ActivityStarted(string mode, Variant argument)
 	{
 		base._ActivityStarted(mode, argument);
 		this.State = StateEnum.Started;
+		this.StartStrategy?.Started(this);
 	}
 
 	protected override void _ActivityFinished(string reason, Variant details)
@@ -130,6 +124,7 @@ public partial class ActivityComponent : Activity
 		this.State = this.ParentActivity?.IsActive == true
 			? StateEnum.Finished
 			: StateEnum.Inactive;
+		this.StartStrategy?.Finished(this);
 	}
 
 	private void OnParentActivityWillStart(string mode, Variant argument, GodotCancellationController controller)
@@ -168,14 +163,7 @@ public partial class ActivityComponent : Activity
 			&& this.State == StateEnum.StandBy
 			&& !this.IsActive
 			&& this.ParentActivity?.IsActive == true
-			&& (!this.StartStrategyEnabled || this.StartStrategy?.Test(this.ParentActivity) == true);
-
-	private bool TestFinishConditions()
-		=> !this.Enabled
-			|| !this.IsActive
-			|| this.ParentActivity?.IsActive != true
-			|| this.State != StateEnum.Started
-			|| this.FinishStrategyEnabled && this.FinishStrategy?.Test(this.ParentActivity) == true;
+			&& (!this.StartStrategyEnabled || this.StartStrategy?.Test(this.ActiveTimeSpan) == true);
 
 	//==================================================================================================================
 	#endregion

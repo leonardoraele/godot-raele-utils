@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Godot;
 using Raele.GodotUtils.Adapters;
@@ -89,6 +90,6 @@ public partial class ExpressionStrategy : TimingStrategy
 			nameof(Expression) => "",
 			_ => Variant.NULL,
 		};
-	public override bool Test(Activity? activity)
+	public override bool Test(TimeSpan activeTime)
 		=> this.Interpreter.Execute([this.Param], this.Context).AsBool();
 }

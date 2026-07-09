@@ -124,6 +124,11 @@ public partial class Activity : Node
 		if (!this.IsActive)
 			return;
 		this.ActiveTimeSpan += TimeSpan.FromSeconds(delta);
+		if (this.TestFinishConditions())
+		{
+			this.Finish($"{nameof(Activity)}.{nameof(this.FinishStrategy)}({this.FinishStrategy?.GetType().Name ?? "null"}).ConditionSatisfied");
+			return;
+		}
 		try
 		{
 			this._ActivityProcessActive(delta);
@@ -206,6 +211,7 @@ public partial class Activity : Node
 		}
 		finally
 		{
+			this.FinishStrategy?.CallDeferred(TimingStrategy.MethodName.Started, this);
 			this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.Started, mode, argument);
 		}
 	}
@@ -247,9 +253,16 @@ public partial class Activity : Node
 		}
 		finally
 		{
+			this.FinishStrategy?.CallDeferred(TimingStrategy.MethodName.Finished, this);
 			this.CallDeferred(GodotObject.MethodName.EmitSignal, SignalName.Finished, reason, details);
 		}
 	}
+
+	//------------------------------------------------------------------------------------------------------------------
+
+	private bool TestFinishConditions()
+		=> !this.Enabled
+			|| this.FinishStrategyEnabled && this.FinishStrategy?.Test(this.ActiveTimeSpan) == true;
 
 	//==================================================================================================================
 		#endregion

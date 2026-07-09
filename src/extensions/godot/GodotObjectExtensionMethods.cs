@@ -63,30 +63,10 @@ public static class GodotObjectExtensionMethods
 		// }
 
 		public Variant CallSafe(StringName methodName, Variant[]? args = null)
-		{
-			if (!self.IsInstanceValid())
-				return Variant.NULL;
-			try
-				{ return self.Call(methodName, args ?? []); }
-			catch (Exception e)
-			{
-				GD.PushError(e);
-				return Variant.NULL;
-			}
-		}
+			=> self.CallSafe(() => Variant.NULL, methodName, args);
 
 		public T? CallSafe<[MustBeVariant] T>(T defaultReturn, StringName methodName, Variant[]? args = null)
-		{
-			if (!self.IsInstanceValid())
-				return defaultReturn;
-			try
-				{ return self.Call(methodName, args ?? []).As<T>(); }
-			catch (Exception e)
-			{
-				GD.PushError(e);
-				return defaultReturn;
-			}
-		}
+			=> self.CallSafe(() => defaultReturn, methodName, args);
 
 		public T? CallSafe<[MustBeVariant] T>(Func<T> defaultReturnFactory, StringName methodName, Variant[]? args = null)
 		{
