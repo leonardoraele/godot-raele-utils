@@ -33,7 +33,7 @@ public partial class Activity : Node
 	[Export] public TimingStrategy? FinishStrategy;
 
 	[ExportGroup("Options")]
-	[Export] public DisableModeEnum DisableMode = DisableModeEnum.Abort;
+	[Export] public DisableModeEnum DisableMode = DisableModeEnum.FinishAndDisable;
 
 	//==================================================================================================================
 		#endregion
@@ -53,7 +53,7 @@ public partial class Activity : Node
 	public bool CanStart => this.Enabled && !this.IsActive && this.DisableMode switch
 	{
 		DisableModeEnum.Pause => true,
-		DisableModeEnum.Abort or _ => this.CanProcess(),
+		DisableModeEnum.FinishAndDisable or _ => this.CanProcess(),
 	};
 
 	//==================================================================================================================
@@ -79,7 +79,7 @@ public partial class Activity : Node
 		/// <summary>
 		/// The activity will not start if the node is disabled. The <see cref="Enabled"/> property will be ignored.
 		/// </summary>
-		Abort = 16,
+		FinishAndDisable = 16,
 		/// <summary>
 		/// The activity will start as normal, but will not emit ProcessActive and PhysicsProcessActive signals while
 		/// the node remains disabled. The activity duration timer will be paused.

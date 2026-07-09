@@ -95,7 +95,7 @@ public partial class PropertyPolling : Node
 					)
 					.Select(prop => prop["name"].AsString())
 					.ToArray()
-					.SortChainable(string.Compare)
+					.SortInplace(string.Compare)
 					.JoinIntoString(",");
 				property["hint"] = (long) PropertyHint.EnumSuggestion;
 				property["hint_string"] = options;
@@ -113,7 +113,7 @@ public partial class PropertyPolling : Node
 					.Where(prop => prop["type"].AsVariantType().IsConvertibleTo(type))
 					.Select(prop => prop["name"].AsString())
 					.ToArray()
-					.SortChainable(string.Compare)
+					.SortInplace(string.Compare)
 					.JoinIntoString(",");
 				property["hint"] = (long) PropertyHint.EnumSuggestion;
 				property["hint_string"] = options;
