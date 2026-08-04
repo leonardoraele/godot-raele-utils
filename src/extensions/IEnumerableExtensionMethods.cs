@@ -79,6 +79,15 @@ public static class IEnumerableExtensionMethods
 		public IEnumerable<T> ConcatIf(bool condition, IEnumerable<T> elements)
 			=> condition ? self.Concat(elements) : self;
 
+		public IEnumerable<T> AppendIf(bool condition, Func<T> element)
+			=> condition ? self.Append(element()) : self;
+
+		public IEnumerable<T> PrependIf(bool condition, Func<T> element)
+			=> condition ? self.Prepend(element()) : self;
+
+		public IEnumerable<T> ConcatIf(bool condition, Func<IEnumerable<T>> elements)
+			=> condition ? self.Concat(elements()) : self;
+
 		public string JoinIntoString(string separator) => string.Join(separator, self);
 
 		public void Deconstruct(out T? el1)

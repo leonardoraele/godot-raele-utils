@@ -42,42 +42,43 @@ public static class GodotObjectExtensionMethods
 				self.Disconnect(signalName, callable);
 		}
 
-		// public void Connect(
-		// 	StringName signal,
-		// 	Callable callable,
-		// 	GodotCancellationToken cancellationToken,
-		// 	params ConnectFlags[] connectFlags
-		// )
-		// 	=> self.Connect(signal, callable, cancellationToken.BackingToken, connectFlags);
+		public void ConnectCancellable(
+			StringName signal,
+			Callable callable,
+			GodotCancellationToken cancellationToken
+		)
+			=> self.ConnectCancellable(signal, callable, cancellationToken, 0);
 
-		// public void Connect(
-		// 	StringName signal,
-		// 	Callable callable,
-		// 	System.Threading.CancellationToken cancellationToken,
-		// 	params ConnectFlags[] connectFlags
-		// )
-		// {
-		// 	uint flags = connectFlags.Aggregate(0u, (acc, flag) => acc | (uint) flag);
-		// 	self.Connect(signal, callable, flags);
-		// 	cancellationToken.Register(() => self.Disconnect(signal, callable));
-		// }
-
-		public Variant CallSafe(StringName methodName, Variant[]? args = null)
-			=> self.CallSafe(() => Variant.NULL, methodName, args);
-
-		public T? CallSafe<[MustBeVariant] T>(T defaultReturn, StringName methodName, Variant[]? args = null)
-			=> self.CallSafe(() => defaultReturn, methodName, args);
-
-		public T? CallSafe<[MustBeVariant] T>(Func<T> defaultReturnFactory, StringName methodName, Variant[]? args = null)
+		public void ConnectCancellable(
+			StringName signal,
+			Callable callable,
+			GodotCancellationToken cancellationToken,
+			GodotObject.ConnectFlags connectFlags
+		)
 		{
-			if (!self.IsInstanceValid())
-				return defaultReturnFactory();
+			self.Connect(signal, callable, (uint) connectFlags);
+			cancellationToken.Register(() => self.Disconnect(signal, callable));
+		}
+
+		public Variant CallSafe(StringName methodName, params Variant[] args)
+		{
+			self.CallSafe(out Variant @return, methodName, args);
+			return @return;
+		}
+		public bool CallSafe<[MustBeVariant] T>(out T @return, StringName methodName, params Variant[] args)
+			=> self.CallSafe(out @return, methodName, args);
+		public bool CallSafe(out Variant @return, StringName methodName, params Variant[] args)
+		{
 			try
-				{ return self.Call(methodName, args ?? []).As<T>(); }
+			{
+				@return = self.Call(methodName, args);
+				return true;
+			}
 			catch (Exception e)
 			{
 				GD.PushError(e);
-				return defaultReturnFactory();
+				@return = default;
+				return false;
 			}
 		}
 

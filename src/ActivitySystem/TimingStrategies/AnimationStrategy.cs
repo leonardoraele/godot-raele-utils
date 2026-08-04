@@ -26,7 +26,7 @@ public partial class AnimationStrategy : TimingStrategy
 		=> this.ResourceLocalToScene
 			// FIXME: ERROR: The caller thread can't call the function `get_node_or_null()` on this node. Use
 			// `call_deferred()` or `call_deferred_thread_group()` instead.
-			? this.GetLocalScene().GetNodeOrNull<AnimationPlayer>(this.AnimationPlayer)
+			? this.GetLocalScene()?.GetNodeOrNull<AnimationPlayer>(this.AnimationPlayer)
 			: null;
 	private Animation? AnimationObject
 	{
@@ -120,7 +120,9 @@ public partial class AnimationStrategy : TimingStrategy
 	public override bool Test(TimeSpan activeTime)
 	{
 		bool isCurrentAnimation = this.AnimationPlayerObject?.CurrentAnimation.ToString() == this.Animation;
-		double currentPosition = this.AnimationPlayerObject?.CurrentAnimationPosition ?? 0;
+		double currentPosition = !string.IsNullOrWhiteSpace(this.AnimationPlayerObject?.CurrentAnimation?.ToString() ?? "")
+			? this.AnimationPlayerObject!.CurrentAnimationPosition
+			: 0;
 		return this.Timing switch
 		{
 			TimingEnum.OnAnimationStart => this.LastAnimationStarted == this.Animation,

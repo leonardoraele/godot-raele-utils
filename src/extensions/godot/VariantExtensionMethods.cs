@@ -193,9 +193,16 @@ public static class VariantExtensionMethods
 				Variant.Type.StringName => "",
 				Variant.Type.NodePath => "",
 				Variant.Type.Rid => default(Rid),
-				Variant.Type.Object => Variant.NULL,
 				Variant.Type.Callable => default(Callable),
 				Variant.Type.Signal => default(Signal),
+				_ => Variant.NULL
+			};
+
+		public static T GetEmpty<[MustBeVariant] T>()
+			=> Variant.GetEmpty(Variant.Typeof<T>()).As<T>();
+		public static Variant GetEmpty(Variant.Type type)
+			=> type switch
+			{
 				Variant.Type.Dictionary => new Godot.Collections.Dictionary(),
 				Variant.Type.Array => new Godot.Collections.Array(),
 				Variant.Type.PackedByteArray => new byte[0],
@@ -208,7 +215,7 @@ public static class VariantExtensionMethods
 				Variant.Type.PackedVector3Array => new Vector3[0],
 				Variant.Type.PackedColorArray => new Color[0],
 				Variant.Type.PackedVector4Array => new Vector4[0],
-				_ => Variant.NULL
+				_ => Variant.GetDefault(type),
 			};
 	}
 
@@ -360,5 +367,6 @@ public static class VariantExtensionMethods
 
 		private bool IsAnyOf(Variant.Type[] types)
 			=> types.Contains(self);
+		public Variant DefaultValue => Variant.GetDefault(self);
 	}
 }

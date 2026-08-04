@@ -32,7 +32,7 @@ public abstract partial class Command : Message
 
 	protected override IEnumerable<KeyValuePair<Variant, Variant>> _GetDetails()
 		=> base._GetDetails()
-			.AppendIf(this.Cancelled, new(nameof(this.Cancelled), this.Cancelled));
+			.AppendIf(this.Cancelled, new KeyValuePair<Variant, Variant>(nameof(this.Cancelled), this.Cancelled));
 
 	protected override void _Publish()
 		=> MessageBus.Singleton.Dispatch(this);
