@@ -56,4 +56,9 @@ public static class StringExtensionMethods
 		/// </summary>
 		public bool IsNullOrWhiteSpace() => string.IsNullOrWhiteSpace(str);
 	}
+
+	extension(FormattableString self)
+	{
+		public string ToInvariant() => FormattableString.Invariant(self);
+	}
 }
