@@ -15,6 +15,12 @@ public class StringBuilder
 		return this;
 	}
 
+	public StringBuilder AppendMany(IEnumerable<string> parts)
+	{
+		this.Parts.AddRange(parts);
+		return this;
+	}
+
 	public StringBuilder AppendIf(bool condition, string part)
 	{
 		if (condition)
@@ -22,7 +28,7 @@ public class StringBuilder
 		return this;
 	}
 
-	public StringBuilder AppendIfValid(string? part)
+	public StringBuilder AppendIfNotEmpty(string? part)
 		=> this.AppendIf(!string.IsNullOrEmpty(part), part ?? "");
 
 	public StringBuilder WithSuffix(string suffix)
@@ -45,7 +51,7 @@ public class StringBuilder
 	}
 
 	public string Join(string separator)
-		=> $"{this.Prefix}{this.Parts.JoinIntoString(separator)}{this.Suffix}";
+		=> this.Parts.Count > 0 ? $"{this.Prefix}{this.Parts.JoinIntoString(separator)}{this.Suffix}" : "";
 
 	public override string ToString()
 		=> this.Join("");

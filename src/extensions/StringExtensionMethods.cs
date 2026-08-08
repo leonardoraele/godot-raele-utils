@@ -51,9 +51,9 @@ public static class StringExtensionMethods
 
 	extension(string? str)
 	{
-		/// <summary>
-		/// Determines whether the specified string is null, empty, or consists only of white-space characters.
-		/// </summary>
+		public bool IsEmpty() => string.IsNullOrEmpty(str);
+		public bool IsWhite() => string.IsNullOrWhiteSpace(str);
+		[Obsolete("Use IsWhite instead.")]
 		public bool IsNullOrWhiteSpace() => string.IsNullOrWhiteSpace(str);
 	}
 
