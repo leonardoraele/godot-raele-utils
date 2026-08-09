@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Godot;
 
 namespace Raele.GodotUtils.Extensions;
@@ -53,6 +54,24 @@ public static class GodotObjectExtensionMethods
 			StringName signal,
 			Callable callable,
 			GodotCancellationToken cancellationToken,
+			GodotObject.ConnectFlags connectFlags
+		)
+		{
+			self.Connect(signal, callable, (uint) connectFlags);
+			cancellationToken.Register(() => self.Disconnect(signal, callable));
+		}
+
+		public void ConnectCancellable(
+			StringName signal,
+			Callable callable,
+			CancellationToken cancellationToken
+		)
+			=> self.ConnectCancellable(signal, callable, cancellationToken, 0);
+
+		public void ConnectCancellable(
+			StringName signal,
+			Callable callable,
+			CancellationToken cancellationToken,
 			GodotObject.ConnectFlags connectFlags
 		)
 		{

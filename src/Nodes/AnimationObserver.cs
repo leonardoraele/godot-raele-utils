@@ -46,7 +46,7 @@ public partial class AnimationObserver : Node
 	// SIGNALS
 	//==================================================================================================================
 
-	[Signal] public delegate void SectionChangedEventHandler(string animationName, string beginMarker, string endMarker);
+	[Signal] public delegate void SectionChangedEventHandler(StringName animationName, StringName beginMarker, StringName endMarker);
 
 	//==================================================================================================================
 	// INTERNAL TYPES
