@@ -59,8 +59,8 @@ public partial class AnimationObserver : Node
 
 	public override string[] _GetConfigurationWarnings()
 		=> (base._GetConfigurationWarnings() ?? [])
-			.AppendIf(this.AnimationPlayer == null, $"{nameof(AnimationObserver)} node must be a direct child of an {nameof(AnimationMixer)} node, such as {nameof(AnimationPlayer)} or {nameof(AnimationTree)}.")
-			.AppendIf(this.FilterEnabled && this.AnimationPlayer?.HasAnimation(this.FilterAnimationName) == false, $"Animation '{this.FilterAnimationName}' does not exist in the {nameof(AnimationMixer)}.")
+			.AppendIf(this.AnimationPlayer == null, $"{nameof(AnimationObserver)} node must be a direct child of an {nameof(AnimationPlayer)} node.")
+			.AppendIf(this.FilterEnabled && this.AnimationPlayer?.HasAnimation(this.FilterAnimationName) == false, $"Animation '{this.FilterAnimationName}' does not exist in the parent {nameof(AnimationPlayer)}.")
 			.ToArray();
 
 	public override void _ValidateProperty(Godot.Collections.Dictionary property)
