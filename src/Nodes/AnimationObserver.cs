@@ -24,8 +24,11 @@ public partial class AnimationObserver : Node
 	//==================================================================================================================
 
 	[ExportGroup("Filter Animation", "Filter")]
-	[Export(PropertyHint.GroupEnable)] public bool FilterEnabled;
-	[Export] public string FilterAnimationName = "";
+	[Export(PropertyHint.GroupEnable)] public bool FilterEnabled
+		{ get; set { field = value; this.UpdateConfigurationWarnings(); } }
+	[Export] public string FilterAnimationName
+		{ get; set { field = value; this.UpdateConfigurationWarnings(); } }
+		= "";
 
 	//==================================================================================================================
 	// FIELDS
