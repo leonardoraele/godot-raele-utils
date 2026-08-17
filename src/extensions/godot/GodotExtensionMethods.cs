@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Godot;
 
@@ -24,6 +23,16 @@ public static class GodotExtensionMethods
 			token.Register(source.SetCanceled);
 			return Task.WhenAny(self.ToTask(), source.Task).Unwrap();
 		}
+		/// <summary>
+		/// An alias of <see cref="OnCompleted"/>, added for naming parity with <see cref="ClearCallback"/>.
+		/// </summary>
+		public void SetCallback(Action action)
+			=> self.OnCompleted(action);
+		/// <summary>
+		/// Removes the callback registered by calling <see cref="OnCompleted"/>, if any.
+		/// </summary>
+		public void ClearCallback()
+			=> self.OnCompleted(null);
 	}
 
 	extension<[MustBeVariant] T>(IEnumerable<T> sequence)

@@ -36,7 +36,7 @@ public partial class GodotCancellationToken : GodotObject
 		init
 		{
 			field = value;
-			value.Register(() => this.EmitSignal(SignalName.CancellationRequested));
+			value.Register(this.EmitSignalCancellationRequested);
 		}
 	}
 

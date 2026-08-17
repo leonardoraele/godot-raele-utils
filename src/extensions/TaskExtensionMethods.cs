@@ -1,5 +1,7 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
+using Godot;
 
 namespace Raele.GodotUtils.Extensions;
 
@@ -11,7 +13,7 @@ public static class TaskExtensionMethods
 		{
 			return self.ContinueWith(task =>
 			{
-				if (!task.IsCompletedSuccessfully)
+				if (task.IsCompletedSuccessfully)
 					action();
 			});
 		}
@@ -20,8 +22,10 @@ public static class TaskExtensionMethods
 		{
 			return self.ContinueWith(task =>
 			{
-				if (task.IsFaulted && task.Exception != null)
-					action(task.Exception);
+				if (!task.IsFaulted)
+					return;
+				System.Diagnostics.Debug.Assert(task.Exception != null, "Task.Exception should not be null when the task is faulted.");
+				action(task.Exception);
 			});
 		}
 
@@ -32,6 +36,17 @@ public static class TaskExtensionMethods
 				if (task.IsCanceled)
 					action();
 			});
+		}
+	}
+
+	extension (CancellationToken self)
+	{
+		public SignalAwaiter ToSignal()
+		{
+			GodotObject source = new();
+			source.AddUserSignal("cancelled");
+			self.Register(() => source.EmitSignal("cancelled"));
+			return source.ToSignal(source, "cancelled");
 		}
 	}
 }
