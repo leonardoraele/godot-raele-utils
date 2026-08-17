@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Raele.GodotUtils.Extensions;
 
@@ -49,12 +50,14 @@ public static class StringExtensionMethods
 		public string BBCFgColor(string color) => $"[fgcolor={color}]{str}[/fgcolor]";
 	}
 
-	extension(string? str)
+	extension(string? self)
 	{
-		public bool IsEmpty() => string.IsNullOrEmpty(str);
-		public bool IsWhite() => string.IsNullOrWhiteSpace(str);
-		[Obsolete("Use IsWhite instead.")]
-		public bool IsNullOrWhiteSpace() => string.IsNullOrWhiteSpace(str);
+		public bool IsNullOrEmpty() => string.IsNullOrEmpty(self);
+		public bool IsNullOrWhiteSpace() => string.IsNullOrWhiteSpace(self);
+		public static bool IsNotNullOrEmpty([NotNullWhen(true)] string? str)
+			=> !string.IsNullOrEmpty(str);
+		public static bool IsNotNullOrWhiteSpace([NotNullWhen(true)] string? str)
+			=> !string.IsNullOrWhiteSpace(str);
 	}
 
 	extension(FormattableString self)

@@ -31,7 +31,7 @@ public static class LoggingExtensions
 	private static string GetNextColorCode() => COLORS[colorIndex = (colorIndex + 3) % COLORS.Length].ToHtml();
 
 	// private static IEnumerable<string> ToChunks(string message, int size = 80)
-	// 	// => message.Chunk(80).Select(chars => new string(chars)) // TODO Bechmark performance of this vs current implementation
+	// 	// => message.Chunk(80).Select(chars => new string(chars)) // -TODO Bechmark performance of this vs current implementation
 	// 	=> Enumerable.Range(0, message.Length / size + 1)
 	// 		.Select(i => message.Substring(i * size, Math.Min(size, message.Length - i * size)));
 

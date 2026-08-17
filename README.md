@@ -1,4 +1,4 @@
-# My Godot C# Utility Tools
+# My Collection of Godot C# Utility Tools
 
 A collection of utility classes and extensions for Godot C#.
 
